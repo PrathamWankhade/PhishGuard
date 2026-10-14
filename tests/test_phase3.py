@@ -72,3 +72,15 @@ def test_predict_rejects_oversized_body():
     big = "x" * 250_000
     r = client.post("/api/v1/predict", json={"email_text": big, "sender": "a@b.com"})
     assert r.status_code == 413
+
+
+def test_explainer_import_safe_without_credentials(monkeypatch):
+    """Regression: importing the explainer in CI (no keys) must not raise."""
+    import importlib
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "")
+    monkeypatch.setenv("AI_EXPLANATIONS_ENABLED", "true")
+    import backend.app.services.openrouter_explainer as mod
+
+    importlib.reload(mod)  # must not raise OpenAIError
+    assert mod.generate_ai_explanation("hi", "a@b.com", "Safe Email", 10) is None

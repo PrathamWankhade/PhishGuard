@@ -7,12 +7,22 @@ load_dotenv()
 
 AI_ENABLED = os.environ.get("AI_EXPLANATIONS_ENABLED", "true").lower() not in ("0", "false", "no")
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    timeout=10.0,
-    max_retries=1,
-)
+# NOTE: the client is created lazily inside _get_client(), never at import
+# time. Constructing OpenAI() requires credentials, and importing this module
+# (e.g. during pytest collection in CI) must never fail for lack of keys.
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        _client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            timeout=10.0,
+            max_retries=1,
+        )
+    return _client
 
 MODEL = "meta-llama/llama-3.3-70b-instruct"
 
@@ -29,6 +39,7 @@ def generate_ai_explanation(email_text: str, sender: str, prediction: str, confi
     if not AI_ENABLED or not os.getenv("OPENROUTER_API_KEY"):
         return None
     try:
+        client = _get_client()
         prompt = f"Prediction: {prediction}\nConfidence: {confidence}%\nSender: {sender}\n\nEmail:\n{email_text[:2000]}"
 
         response = client.chat.completions.create(
