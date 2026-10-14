@@ -1,11 +1,38 @@
 import os
 import json
+import threading
+from datetime import date
 from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
 
 AI_ENABLED = os.environ.get("AI_EXPLANATIONS_ENABLED", "true").lower() not in ("0", "false", "no")
+
+# Cost/abuse controls for the paid external provider (single-instance).
+# - AI_DAILY_BUDGET: max provider calls per calendar day (default 500).
+# - AI_MAX_CONCURRENT: max simultaneous provider calls (default 4).
+_ai_lock = threading.Lock()
+_ai_day = str(date.today())
+_ai_used_today = 0
+_ai_semaphore = threading.BoundedSemaphore(int(os.environ.get("AI_MAX_CONCURRENT", "4")))
+
+
+def _budget_allows() -> bool:
+    """Daily spending cap. Returns True and records usage, or False."""
+    global _ai_day, _ai_used_today
+    try:
+        cap = int(os.environ.get("AI_DAILY_BUDGET", "500"))
+    except ValueError:
+        cap = 500
+    today = str(date.today())
+    with _ai_lock:
+        if today != _ai_day:
+            _ai_day, _ai_used_today = today, 0
+        if _ai_used_today >= cap:
+            return False
+        _ai_used_today += 1
+        return True
 
 # NOTE: the client is created lazily inside _get_client(), never at import
 # time. Constructing OpenAI() requires credentials, and importing this module
@@ -38,6 +65,10 @@ def generate_ai_explanation(email_text: str, sender: str, prediction: str, confi
     """
     if not AI_ENABLED or not os.getenv("OPENROUTER_API_KEY"):
         return None
+    if not _budget_allows():
+        return None  # daily provider budget exhausted: stay local-only
+    if not _ai_semaphore.acquire(blocking=False):
+        return None  # provider saturated: degrade, never queue unboundedly
     try:
         client = _get_client()
         prompt = f"Prediction: {prediction}\nConfidence: {confidence}%\nSender: {sender}\n\nEmail:\n{email_text[:2000]}"
@@ -59,3 +90,5 @@ def generate_ai_explanation(email_text: str, sender: str, prediction: str, confi
     except Exception as error:
         print("OpenRouter error:", error)
         return ["AI explanation unavailable."]
+    finally:
+        _ai_semaphore.release()

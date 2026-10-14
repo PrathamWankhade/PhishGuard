@@ -72,8 +72,11 @@ flowchart LR
 3. **Corroborate** — URL (one record per URL), sender domain, header
    authentication, and BEC/fraud analyzers add bounded, evidence-tagged risk.
 4. **Decide** — `risk = P(phishing)*100 + url(<=20) + sender(<=30) +
-   evidence(<=10)`; thresholds >= 75 Phishing, >= 45 Suspicious (interim,
-   pending held-out validation).
+   evidence(<=10)`; thresholds 75 Phishing / 45 Suspicious. Reported
+   performance is measured on a stratified holdout with sender/header
+   context omitted — not an estimate of unseen-campaign performance, and
+   the holdout must not be reused for threshold tuning. Source-separated
+   validation remains a separate evaluation requirement.
 5. **Explain and persist** — deterministic signals are the source of truth;
    the LLM may add a summary; the scan is stored by content hash.
 

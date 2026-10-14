@@ -55,3 +55,9 @@ real users' mail: enable `API_KEYS`, scope history per user/tenant (not yet
 implemented — history is currently global), define a retention/deletion
 policy, and consider encrypting `email_text` at rest. See
 [Security](security.md).
+
+**Default retention policy:** `scan_history` rows older than 90 days are
+deleted; `scan_feedback` rows are kept 365 days for trend monitoring.
+Enforce with `python scripts/purge_history.py --dry-run` (preview) and
+`--apply` (delete). Schedule it via cron/systemd/Task Scheduler in
+production; document any deviation for your deployment.

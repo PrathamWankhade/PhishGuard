@@ -14,7 +14,9 @@ async def upload_email(file: UploadFile) -> dict:
     name = (file.filename or "").lower()
     if not name.endswith(ALLOWED_EXTENSIONS):
         raise HTTPException(status_code=415, detail="Only .eml and .txt files are accepted.")
-    content = await file.read()
+    # Bounded read: pull at most MAX+1 bytes so oversized uploads are
+    # rejected WITHOUT loading the entire file into memory first.
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 2MB limit.")
     if not content.strip():

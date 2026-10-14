@@ -78,3 +78,13 @@ Historical headline claims predating the Pipeline-CV fix are retired; do not
 cite them. Source-separated (unseen-campaign) estimates require a dataset
 build with the `source` column — run `source_split_eval.py` after
 `build_final_dataset.py` and attach its report to the release.
+
+## Adversarial and difficult negatives
+
+`tests/fixtures/adversarial.jsonl` (12 cases) covers legitimate password
+resets, invoices, security notices, newsletters, OTPs versus credential
+lures, quiet BEC, punycode, shorteners, IP URLs, gift-card fraud, and
+subdomain spoofing. Baseline: 7/7 phishing caught; 3/5 tricky-legitimate
+mails over-flagged as Phishing. `test_adversarial.py` locks this as a
+no-regression ceiling — the legitimate-mail false-positive gap is the top
+detection-quality item, ahead of any new features.

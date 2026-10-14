@@ -45,6 +45,9 @@ def dashboard():
         "phishing_count": phishing,
         "suspicious_count": suspicious,
         "safe_count": safe,
+        # Honestly named: stored `confidence` is the policy risk score
+        # (legacy alias). avg_confidence kept for backward compatibility.
+        "avg_risk_score": round(avg_conf, 1) if avg_conf else 0,
         "avg_confidence": round(avg_conf, 1) if avg_conf else 0,
         "risk_levels": levels,
     }

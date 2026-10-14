@@ -20,6 +20,39 @@ MAX_TRACKED_CLIENTS = 5000
 # Reject oversized request bodies before parsing (upload route has its own 2MB file cap).
 MAX_BODY_BYTES = 200_000
 
+# Stricter quota for expensive inference/upload routes (abuse control on the
+# public scanning surface; gateway/Redis still needed for multi-worker).
+EXPENSIVE_PATHS = ("/api/v1/predict", "/api/v1/upload")
+EXPENSIVE_RATE_LIMIT = 30
+expensive_limit_store: dict = defaultdict(list)
+
+
+def _bucket_hit(store, key: str, now: float) -> list:
+    window_start = now - RATE_LIMIT_WINDOW
+    return [t for t in store.get(key, []) if t > window_start]
+
+
+def check_rate_limit(client_ip: str, path: str, now: float | None = None) -> bool:
+    """Return True if the request is allowed, recording it. Unit-testable."""
+    now = now if now is not None else time.time()
+    if path in EXPENSIVE_PATHS:
+        bucket = _bucket_hit(expensive_limit_store, client_ip, now)
+        if len(bucket) >= EXPENSIVE_RATE_LIMIT:
+            expensive_limit_store[client_ip] = bucket
+            return False
+        bucket.append(now)
+        expensive_limit_store[client_ip] = bucket
+    bucket = _bucket_hit(rate_limit_store, client_ip, now)
+    if len(bucket) >= RATE_LIMIT:
+        rate_limit_store[client_ip] = bucket
+        return False
+    bucket.append(now)
+    rate_limit_store[client_ip] = bucket
+    for store in (rate_limit_store, expensive_limit_store):
+        if len(store) > MAX_TRACKED_CLIENTS:
+            store.pop(next(iter(store)), None)
+    return True
+
 # Cached readiness: artifacts are validated once (or on TTL expiry), not
 # joblib-loaded on every orchestrator probe.
 import threading as _threading
@@ -44,9 +77,15 @@ def _evaluate_readiness() -> tuple[bool, dict]:
 
         model = joblib.load(model_path)
         vectorizer = joblib.load(vectorizer_path)
-        assert hasattr(model, "predict") and hasattr(model, "classes_")
-        vectorizer.transform(["readiness probe"])
-        return True, {"model_classes": [str(c) for c in list(model.classes_)]}
+        # Full inference contract (what production scoring actually needs):
+        # predict + predict_proba, a phishing class, and a valid probability.
+        assert hasattr(model, "predict") and hasattr(model, "predict_proba")
+        classes = [str(c) for c in list(model.classes_)]
+        assert "phishing" in classes, f"model classes {classes} lack 'phishing'"
+        proba = model.predict_proba(vectorizer.transform(["readiness probe"]))
+        p = float(proba[0][classes.index("phishing")])
+        assert 0.0 <= p <= 1.0, f"phishing probability out of range: {p}"
+        return True, {"model_classes": classes}
     except Exception as e:
         return False, {"reason": f"artifact load failed: {e}"}
 
@@ -111,18 +150,8 @@ async def rate_limit_middleware(request: Request, call_next):
         client_ip = request.client.host if request.client else "unknown"
         # Trust X-Forwarded-For only when set by a configured proxy is out of
         # scope for Phase 1; document that proxy deployments must configure it.
-        now = time.time()
-        window_start = now - RATE_LIMIT_WINDOW
-        bucket = [t for t in rate_limit_store.get(client_ip, []) if t > window_start]
-        if len(bucket) >= RATE_LIMIT:
-            rate_limit_store[client_ip] = bucket
+        if not check_rate_limit(client_ip, request.url.path):
             return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded. Try again later."})
-        bucket.append(now)
-        rate_limit_store[client_ip] = bucket
-        # Bound memory: evict oldest client buckets when too many are tracked.
-        if len(rate_limit_store) > MAX_TRACKED_CLIENTS:
-            oldest = next(iter(rate_limit_store))
-            rate_limit_store.pop(oldest, None)
     return await call_next(request)
 
 

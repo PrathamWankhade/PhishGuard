@@ -52,6 +52,9 @@ def test_upload_rejects_bad_extension_and_oversize():
     assert r.status_code == 415
     r = client.post("/api/v1/upload", files={"file": ("a.eml", b"   ", "message/rfc822")})
     assert r.status_code == 422
+    # 3MB must be rejected by the bounded read without loading it all.
+    r = client.post("/api/v1/upload", files={"file": ("big.eml", b"x" * 3_000_000, "message/rfc822")})
+    assert r.status_code == 413
 
 
 def test_upload_parses_eml():

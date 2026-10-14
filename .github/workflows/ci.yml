@@ -29,3 +29,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Build deterministic fixture model
+        run: python scripts/build_ci_fixture_model.py
+      - name: Inference-contract tests (fixture model)
+        run: python -m pytest tests/test_inference_contract.py -v

@@ -2,8 +2,9 @@
 
 Local-only analysis of message headers supplied by the caller/parser.
 We never fetch external reputation data here. Findings distinguish:
-- trusted authentication results (parsed Authentication-Results header),
 - reply-path mismatches (From vs Reply-To / Return-Path),
+- authentication-result claims, explicitly marked verified (trusted
+  infrastructure only) or unverified (caller-supplied, forgeable),
 which the text classifier cannot see.
 """
 import re
@@ -19,7 +20,16 @@ def analyze_auth(
     reply_to: str = "",
     return_path: str = "",
     auth_results: str = "",
+    trusted: bool = False,
 ) -> dict:
+    """Header authentication + reply-path mismatch signals.
+
+    TRUST BOUNDARY: `auth_results` arriving via the public API (pasted text,
+    uploaded files) is caller-supplied and can be forged — a `spf=pass` claim
+    proves nothing. Pass `trusted=True` ONLY for Authentication-Results added
+    by receiving infrastructure you operate. Untrusted failures are kept as
+    weak, explicitly-labeled signals; untrusted passes are informational.
+    """
     reasons: list[str] = []
     risk = 0
 
@@ -46,9 +56,17 @@ def analyze_auth(
             if m:
                 verdict = m.group(1)
                 if verdict in ("fail", "softfail", "permerror"):
-                    reasons.append(f"Email authentication failed: {method}={verdict}")
-                    risk += 8
+                    if trusted:
+                        reasons.append(f"Email authentication failed: {method}={verdict}")
+                        risk += 8
+                    else:
+                        reasons.append(
+                            f"Unverified header claims {method}={verdict} "
+                            "(caller-supplied, not server-verified)"
+                        )
+                        risk += 4
                 elif verdict == "pass":
-                    reasons.append(f"Email authentication passed: {method}=pass")
+                    tag = "verified" if trusted else "unverified caller-supplied"
+                    reasons.append(f"Email authentication passed ({tag}): {method}=pass")
 
     return {"reasons": reasons, "risk": min(20, risk)}

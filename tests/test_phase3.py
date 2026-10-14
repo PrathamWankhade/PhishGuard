@@ -28,6 +28,21 @@ def test_spf_fail_flagged_spf_pass_noted():
     assert any("dkim=pass" in r for r in out["reasons"])
 
 
+def test_forged_pass_claim_adds_no_risk():
+    # Caller-supplied spf=pass proves nothing: informational only, zero risk.
+    out = analyze_auth("evil@x.com", auth_results="spf=pass dkim=pass dmarc=pass")
+    assert out["risk"] == 0
+    assert all("unverified" in r for r in out["reasons"])
+
+
+def test_trusted_fail_carries_full_weight():
+    untrusted = analyze_auth("a@x.com", auth_results="spf=fail")
+    trusted = analyze_auth("a@x.com", auth_results="spf=fail", trusted=True)
+    assert trusted["risk"] > untrusted["risk"]
+    assert any("Unverified" in r for r in untrusted["reasons"])
+    assert all("Unverified" not in r for r in trusted["reasons"])
+
+
 def test_bec_financial_and_secrecy():
     out = analyze_bec("Please wire transfer $5000 today. Keep this confidential, do not tell anyone.")
     assert out["risk"] > 0
@@ -103,6 +118,41 @@ def test_history_gated_when_api_keys_configured(monkeypatch):
     client = TestClient(app)
     assert client.get("/api/v1/history").status_code == 401
     assert client.get("/api/v1/history", headers={"X-API-Key": "wrong"}).status_code == 403
+
+
+def test_expensive_routes_have_stricter_quota():
+    from backend.app import main as app_main
+
+    ip = "10.9.9.9"
+    allowed = sum(1 for _ in range(35) if app_main.check_rate_limit(ip, "/api/v1/predict", now=1000.0))
+    assert allowed == 30
+    # Cheap routes keep the general 60/min budget on a fresh key.
+    assert sum(1 for _ in range(61) if app_main.check_rate_limit("10.9.9.10", "/api/v1/history", now=1000.0)) == 60
+
+
+def test_ai_budget_exhausted_stays_local(monkeypatch):
+    import backend.app.services.openrouter_explainer as mod
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_DAILY_BUDGET", "0")
+    assert mod.generate_ai_explanation("hi", "a@b.com", "Safe Email", 10) is None
+
+
+def test_ai_saturated_semaphore_stays_local(monkeypatch):
+    import backend.app.services.openrouter_explainer as mod
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_DAILY_BUDGET", "500")
+    for _ in range(8):
+        mod._ai_semaphore.acquire(blocking=False)
+    try:
+        assert mod.generate_ai_explanation("hi", "a@b.com", "Safe Email", 10) is None
+    finally:
+        for _ in range(8):
+            try:
+                mod._ai_semaphore.release()
+            except ValueError:
+                pass
 
 
 def test_explainer_import_safe_without_credentials(monkeypatch):

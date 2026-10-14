@@ -243,7 +243,7 @@ export default function Dashboard() {
         <StatCard icon="danger" title="Phishing Detected" value={data.phishing_count} trend={trend.phishing} color="danger" visible={dataVisible} />
         <StatCard icon="check" title="Safe Emails" value={data.safe_count} trend={trend.safe} color="safe" visible={dataVisible} />
         <StatCard icon="warning" title="Suspicious" value={data.suspicious_count || 0} color="warning" visible={dataVisible} />
-        <StatCard icon="analytics" title="Avg Confidence" value={data.avg_confidence} suffix="%" trend={trend.confidence} color="primary" visible={dataVisible} />
+        <StatCard icon="analytics" title="Avg Risk Score" value={data.avg_risk_score ?? data.avg_confidence} suffix="%" trend={trend.confidence} color="primary" visible={dataVisible} />
         <StatCard icon="report" title="High Risk Alerts" value={data.risk_levels?.high || 0} color="danger" visible={dataVisible} />
       </div>
 
