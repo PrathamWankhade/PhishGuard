@@ -1,0 +1,14 @@
+{
+  "n": 39148,
+  "policy": "phase4-probability-v3, thresholds 75/45, text-only (sender='')",
+  "policy_precision": 0.9947,
+  "policy_recall": 0.9329,
+  "policy_fpr": 0.0042,
+  "policy_fnr": 0.0671,
+  "confusion": {
+    "tp": 16765,
+    "fp": 89,
+    "fn": 1205,
+    "tn": 21089
+  }
+}

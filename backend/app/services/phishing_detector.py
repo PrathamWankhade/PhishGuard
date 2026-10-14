@@ -18,8 +18,10 @@ VERDICT_POLICY_VERSION = "phase4-probability-v3"
 # Documented decision policy: risk_score is a heuristic policy score (0-100),
 # NOT a calibrated probability. v3 bases model risk on the PHISHING-CLASS
 # probability (not max-class confidence: a 96% legitimate prediction must
-# contribute ~4 points, not 96). Thresholds below are interim and must be
-# re-validated on a held-out set with legitimate-but-suspicious emails.
+# contribute ~4 points, not 96). Thresholds measured on the 39,148-mail
+# text-only holdout (reports/policy_validation.json): precision 99.5%,
+# recall 93.3%, FPR 0.4%, FNR 6.7%. Re-validate with sender/header context
+# and on source-separated data before changing them.
 RISK_HIGH_THRESHOLD = 75
 RISK_MEDIUM_THRESHOLD = 45
 

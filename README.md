@@ -143,12 +143,21 @@ Full contract with examples: [docs/API_Documentation.md](docs/API_Documentation.
 
 ## Evaluation
 
-Precision/recall/F1, false-positive/negative rates, log loss and Brier
-score come from `train_model.py` / `evaluate_model.py` /
-`source_split_eval.py` and ship per release in
-`trained_models/model_metadata.json`. CV runs inside a sklearn Pipeline (no
-leakage); source-separated evaluation trains without the held-out campaigns.
-Protocol: [docs/model_evaluation.md](docs/model_evaluation.md).
+Measured on the 39,148-mail stratified holdout (model `phase4` release,
+`trained_models/model_metadata.json`):
+
+| Metric | Value |
+|---|---|
+| CV F1-macro (5-fold, Pipeline) | 98.14% |
+| Test accuracy | 98.25% |
+| Phishing precision / recall / F1 | 97.8% / 98.4% / 98.1% |
+| False-positive / false-negative rate | 1.85% / 1.62% |
+| Log loss / Brier score | 0.086 / 0.018 |
+
+Policy verdicts (thresholds 75/45, text-only) on the same holdout:
+precision 99.5%, recall 93.3% — the policy trades recall for precision; see
+`reports/policy_validation.json`. Full protocol:
+[docs/model_evaluation.md](docs/model_evaluation.md).
 
 ## Documentation
 

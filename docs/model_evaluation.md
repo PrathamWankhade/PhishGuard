@@ -55,7 +55,26 @@ evaluation therefore reports the full suite:
 
 ## Current numbers
 
-Regenerating from the current pipeline — see
-`trained_models/model_metadata.json` in a release for the authoritative
-figures. Historical headline claims predating the Pipeline-CV fix are
-retired; do not cite them.
+Release `phase4` (2026-10-14 retrain, 195,740 mails; train 156,592 / test
+39,148; sklearn 1.9.0) — see `trained_models/model_metadata.json`:
+
+| Metric | Value |
+|---|---|
+| CV F1-macro (5-fold, Pipeline) | 0.9814 ± 0.0006 |
+| Test accuracy | 0.9825 |
+| Phishing precision / recall / F1 | 0.9783 / 0.9838 / 0.9810 |
+| False-positive / false-negative rate | 0.0185 / 0.0162 |
+| Log loss / Brier score | 0.0857 / 0.0181 |
+| Confusion [[TN, FP], [FN, TP]] | [[20786, 392], [292, 17678]] |
+
+Policy verdicts at thresholds 75/45 on the same holdout (text-only,
+`reports/policy_validation.json`): precision 0.9947, recall 0.9329, FPR
+0.0042, FNR 0.0671. The policy is deliberately conservative — it catches
+fewer phishes than the raw model (recall 93.3% vs 98.4%) in exchange for a
+0.4% false-positive rate. Re-validate before moving thresholds; the holdout
+must not be used for tuning.
+
+Historical headline claims predating the Pipeline-CV fix are retired; do not
+cite them. Source-separated (unseen-campaign) estimates require a dataset
+build with the `source` column — run `source_split_eval.py` after
+`build_final_dataset.py` and attach its report to the release.

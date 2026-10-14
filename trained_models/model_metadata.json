@@ -1,0 +1,41 @@
+{
+  "model_type": "soft-voting LogisticRegression + RandomForest",
+  "tfidf": {
+    "max_features": 50000,
+    "ngram_range": [
+      1,
+      3
+    ],
+    "sublinear_tf": true,
+    "stop_words": "english"
+  },
+  "split": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "stratify": true
+  },
+  "cv": {
+    "n_splits": 5,
+    "scoring": "f1_macro",
+    "mean": 0.9813934328862406,
+    "std": 0.0006231746702328187
+  },
+  "test": {
+    "accuracy": 0.9825278430571166,
+    "precision_phishing": 0.97830658550083,
+    "recall_phishing": 0.983750695603784,
+    "f1_phishing": 0.9810210876803551,
+    "confusion_matrix": [
+      [
+        20786,
+        392
+      ],
+      [
+        292,
+        17678
+      ]
+    ]
+  },
+  "sklearn_version": "1.9.0",
+  "dataset_rows": 195740
+}
