@@ -1,10 +1,21 @@
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, UploadFile, HTTPException
 from backend.app.controllers.upload_controller import parse_uploaded_email
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
+MAX_UPLOAD_BYTES = 2_000_000
+ALLOWED_EXTENSIONS = (".eml", ".txt", ".msg")
+
 
 @router.post("")
 async def upload_email(file: UploadFile) -> dict:
-    content = (await file.read()).decode("utf-8", errors="ignore")
-    return parse_uploaded_email(content)
+    name = (file.filename or "").lower()
+    if not name.endswith(ALLOWED_EXTENSIONS):
+        raise HTTPException(status_code=415, detail="Only .eml, .txt, .msg files are accepted.")
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File exceeds 2MB limit.")
+    if not content.strip():
+        raise HTTPException(status_code=422, detail="Uploaded file is empty.")
+    text = content.decode("utf-8", errors="ignore")
+    return parse_uploaded_email(text)

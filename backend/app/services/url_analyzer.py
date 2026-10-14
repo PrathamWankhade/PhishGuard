@@ -7,65 +7,105 @@ PHISHING_PATTERNS = re.compile(r"(credential|authenticate|reset-password|secure-
 
 
 def is_homograph(domain: str) -> bool:
-    latin_chars = set("abcdefghijklmnopqrstuvwxyz.-")
-    non_latin = sum(1 for c in domain.lower() if c not in latin_chars)
-    return non_latin > 0
+    """Detect likely lookalike (homograph) domains.
+
+    Operates on the raw (unicode) hostname: pure-ASCII names are never
+    homographs; names with non-ASCII chars are flagged only when a single
+    label mixes latin and non-latin scripts (classic lookalike pattern).
+    Pure single-script IDNs (e.g. legitimate CJK/Arabic domains) return False.
+    """
+    if not domain:
+        return False
+    # Pure ASCII: cannot be a unicode homograph attack.
+    if all(ord(c) < 128 for c in domain):
+        return False
+    for label in domain.lower().split("."):
+        has_latin = any("a" <= c <= "z" for c in label)
+        has_non_latin = any(ord(c) > 127 for c in label)
+        if has_latin and has_non_latin:
+            return True
+        # All-non-latin label that IDNA-encodes to punycode alongside
+        # ASCII labels in the same domain is also suspicious (mixed labels).
+        if has_non_latin and not has_latin:
+            try:
+                label.encode("idna")
+                return True
+            except Exception:
+                return True
+    return False
+
+
+def _extract_hostname(normalized: str) -> tuple[str, str]:
+    """Return (raw_unicode_host, normalized_ascii_host) without userinfo/port."""
+    parsed = urlparse(normalized)
+    raw = (parsed.hostname or "").lower().strip().rstrip(".")
+    if not raw:
+        # Fallback for malformed URLs: strip scheme manually.
+        raw = re.sub(r"^https?://", "", normalized, flags=re.IGNORECASE).split("/")[0]
+        raw = raw.split("@")[-1].split(":")[0].lower().strip().rstrip(".")
+    try:
+        ascii_host = raw.encode("idna").decode("ascii")
+    except Exception:
+        ascii_host = raw
+    return raw, ascii_host
 
 
 def analyze_urls(text: str) -> dict:
-    urls = re.findall(r"https?://[^\s)]+|www\.[^\s)]+", text, flags=re.IGNORECASE)
-    suspicious = []
+    raw_urls = re.findall(r"https?://[^\s)<>\]]+|www\.[^\s)<>\]]+", text or "", flags=re.IGNORECASE)
+    # Strip trailing punctuation captured by the regex (.,;:!?'" etc).
+    urls = [u.rstrip(".,;:!?'\"") for u in raw_urls if u.strip(".,;:!?'\"")]
+    findings = []
     details = []
 
     for url in urls:
-        normalized = url if url.startswith(("http://", "https://")) else f"http://{url}"
-        parsed = urlparse(normalized)
-        domain = parsed.netloc.lower()
+        normalized = url if re.match(r"^https?://", url, re.IGNORECASE) else f"http://{url}"
+        raw_domain, domain = _extract_hostname(normalized)
 
         if domain.startswith("www."):
             domain = domain[4:]
 
         tld = domain.rsplit('.', 1)[-1] if '.' in domain else ""
-        is_suspicious = False
+        url_findings = []
 
         if tld in SUSPICIOUS_TLDS:
-            suspicious.append(url)
+            url_findings.append(f"Suspicious TLD (.{tld}) in {url}")
             details.append(f"Suspicious TLD (.{tld}) in {url}")
-            is_suspicious = True
 
-        if re.search(r"\d{2,}", domain.replace(".", "")):
-            suspicious.append(url)
+        if re.search(r"\d{4,}", domain.replace(".", "")):
+            url_findings.append(f"Domain with excessive digits: {domain}")
             details.append(f"Domain with excessive digits: {domain}")
-            is_suspicious = True
 
-        if is_homograph(domain):
-            suspicious.append(url)
-            details.append(f"Homograph attack detected in domain: {domain}")
-            is_suspicious = True
+        if is_homograph(raw_domain):
+            url_findings.append(f"Homograph attack detected in domain: {raw_domain}")
+            details.append(f"Homograph attack detected in domain: {raw_domain}")
 
         if PHISHING_PATTERNS.search(domain):
-            suspicious.append(url)
+            url_findings.append(f"Phishing-related keywords in domain: {domain}")
             details.append(f"Phishing-related keywords in domain: {domain}")
-            is_suspicious = True
 
         if domain in URL_SHORTENERS:
-            suspicious.append(url)
+            url_findings.append(f"URL shortener detected: {domain}")
             details.append(f"URL shortener detected: {domain}")
-            is_suspicious = True
 
-        if re.match(r"^\d+\.\d+\.\d+\.\d+", domain):
-            suspicious.append(url)
+        if re.match(r"^\d+\.\d+\.\d+\.\d+$", domain):
+            url_findings.append(f"IP-based URL (bypasses domain filtering): {url}")
             details.append(f"IP-based URL (bypasses domain filtering): {url}")
-            is_suspicious = True
 
         if domain.count(".") >= 3:
-            suspicious.append(url)
+            url_findings.append(f"Excessive subdomains in {domain}")
             details.append(f"Excessive subdomains in {domain}")
-            is_suspicious = True
+
+        findings.append({"url": url, "domain": domain, "findings": url_findings})
+
+    suspicious_urls = sorted({f["url"] for f in findings if f["findings"]})
 
     return {
         "urls": urls,
         "count": len(urls),
-        "suspicious_urls": list(set(suspicious)),
-        "details": details,
+        # Unique suspicious URLs — one entry per URL, never one per rule hit.
+        "suspicious_urls": suspicious_urls,
+        "suspicious_count": len(suspicious_urls),
+        "details": sorted(set(details)),
+        # Per-URL evidence: one record per URL with its list of findings.
+        "url_findings": findings,
     }

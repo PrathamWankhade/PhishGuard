@@ -80,21 +80,40 @@ export default function PredictionCard({ result }) {
       {/* Stats */}
       <div className="mb-5 grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
-          <p className="text-xs font-medium text-text-disabled uppercase tracking-wider">Prediction</p>
-          <p className="mt-1 truncate text-base font-semibold text-text-primary">{result.prediction || result.label}</p>
+          <p className="text-xs font-medium text-text-disabled uppercase tracking-wider">Model prediction</p>
+          <p className="mt-1 truncate text-base font-semibold text-text-primary">
+            {result.model_prediction || result.prediction || result.label}
+            {result.model_confidence != null ? ` (${result.model_confidence}%)` : ''}
+          </p>
+        </div>
+        <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
+          <p className="text-xs font-medium text-text-disabled uppercase tracking-wider">Risk score</p>
+          <p className="mt-1 text-base font-semibold text-primary-500">
+            {result.risk_score ?? result.confidence}% · {result.risk_level}
+          </p>
         </div>
         <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
           <p className="text-xs font-medium text-text-disabled uppercase tracking-wider">Source</p>
           <p className="mt-1 text-base font-semibold text-primary-500">{result.source || 'ML Model'}</p>
         </div>
+        <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
+          <p className="text-xs font-medium text-text-disabled uppercase tracking-wider">Verdict policy</p>
+          <p className="mt-1 text-base font-semibold text-text-primary">{result.policy_version || 'explicit-v1'}</p>
+        </div>
       </div>
+
+      {result.warning && (
+        <div className="mb-5 rounded-xl border border-suspicious-500/30 bg-suspicious-50 px-4 py-3 text-sm font-medium text-suspicious-700">
+          {result.warning}
+        </div>
+      )}
 
       {/* Reasons */}
       <div>
-        <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-text-secondary">Explainable AI Analysis</h3>
+        <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-text-secondary">Evidence signals</h3>
         <div className="space-y-2.5">
-          {result.reasons?.length ? (
-            result.reasons.map((reason, i) => (
+          {(result.signals || result.reasons)?.length ? (
+            (result.signals || result.reasons).map((reason, i) => (
               <div key={i} className="flex items-start gap-3 rounded-xl bg-surface-50 px-4 py-3">
                 <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${style.bar}`} />
                 <p className="text-sm leading-5 text-text-primary">{reason}</p>
@@ -106,6 +125,21 @@ export default function PredictionCard({ result }) {
             </div>
           )}
         </div>
+        {result.ai_explanation?.length > 0 && (
+          <div className="mt-4">
+            <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-text-secondary">
+              AI summary (supplementary, does not affect verdict)
+            </h3>
+            <div className="space-y-2.5">
+              {result.ai_explanation.map((reason, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-xl bg-surface-50 px-4 py-3 opacity-90">
+                  <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary-500" />
+                  <p className="text-sm leading-5 text-text-primary">{reason}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

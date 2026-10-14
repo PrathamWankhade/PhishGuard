@@ -190,10 +190,16 @@ print(f"  Legitimate:            {csv_counts['legitimate'] + mail_counts['legiti
 print(f"  Phishing:              {csv_counts['phishing'] + mail_counts['phishing']:>7}")
 
 print("\n  Deduplicating...")
+import hashlib
+
+def canonical_key(text: str) -> str:
+    normalized = re.sub(r"\s+", " ", (text or "").strip().lower())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
 seen = set()
 deduped = []
 for r in all_rows:
-    key = r["email_text"][:200]
+    key = canonical_key(r["email_text"])
     if key not in seen:
         seen.add(key)
         deduped.append(r)
@@ -208,10 +214,24 @@ print(f"  Legitimate: {c_legit}  ({c_legit/len(deduped)*100:.1f}%)")
 print(f"  Phishing:   {c_phish}  ({c_phish/len(deduped)*100:.1f}%)")
 
 with open(OUTPUT, "w", encoding="utf-8", newline="") as f:
-    writer = csv.DictWriter(f, fieldnames=["email_text", "label"])
+    writer = csv.DictWriter(f, fieldnames=["email_text", "label", "source"])
     writer.writeheader()
     for r in deduped:
-        writer.writerow({"email_text": r["email_text"], "label": r["label"]})
+        writer.writerow({"email_text": r["email_text"], "label": r["label"], "source": r.get("source", "")})
+
+# Provenance manifest alongside the dataset.
+import json as _json
+from datetime import datetime, timezone
+manifest = {
+    "created_at": datetime.now(timezone.utc).isoformat(),
+    "rows": len(deduped),
+    "legitimate": c_legit,
+    "phishing": c_phish,
+    "dedup": "sha256 of normalized full text",
+    "sources": sorted({r.get("source", "") for r in deduped}),
+}
+with open(FINAL_DIR / "dataset_manifest.json", "w", encoding="utf-8") as f:
+    _json.dump(manifest, f, indent=2)
 
 size_mb = os.path.getsize(OUTPUT) / (1024**2)
 print(f"\n  Saved: {OUTPUT}  ({size_mb:.1f} MB)")

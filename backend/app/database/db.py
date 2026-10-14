@@ -5,7 +5,7 @@ BASE_DIR = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-DB_NAME = os.path.join(BASE_DIR, "phishing_detection.db")
+DB_NAME = os.environ.get("DATABASE_PATH", os.path.join(BASE_DIR, "phishing_detection.db"))
 _db_initialized = False
 
 

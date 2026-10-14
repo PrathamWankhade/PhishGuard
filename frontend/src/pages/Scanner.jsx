@@ -20,10 +20,16 @@ export default function Scanner() {
     setLoading(true);
     setError(null);
     try {
+      if (!emailText.trim()) {
+        setError('Please paste email content before scanning.');
+        setLoading(false);
+        return;
+      }
       const prediction = await scanEmail({ email_text: emailText, sender });
       setResult(prediction);
     } catch (err) {
-      setError('Failed to scan email. Please try again.');
+      setResult(null);
+      setError(`${err.message}. The ML detector did not run — no result shown.`);
     } finally {
       setLoading(false);
     }

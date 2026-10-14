@@ -17,23 +17,59 @@ class PredictionRequest(BaseModel):
     sender: str = ""
 
 
+class PredictionResponse(BaseModel):
+    status: str = "completed"
+    label: str
+    verdict: str
+    prediction: str
+    model_prediction: str
+    model_confidence: float
+    confidence: float
+    risk_score: float
+    risk_level: str
+    reasons: list[str]
+    signals: list[str]
+    ai_explanation: list[str] | None = None
+    explanation_source: str = "deterministic"
+    source: str = "backend-ai-engine"
+    email_hash: str = ""
+
+
 def sanitize_text(text: str) -> str:
     if not text:
         return ""
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
-    return text[:100000]
+    return text[:10000]
 
 
 @router.post("/predict")
 def predict_email(request: PredictionRequest):
+    from fastapi import HTTPException
+
     safe_text = sanitize_text(request.email_text)
-    safe_sender = sanitize_text(request.sender)
+    safe_sender = sanitize_text(request.sender)[:500]
+
+    if not safe_text.strip():
+        raise HTTPException(status_code=422, detail="email_text must not be empty.")
 
     result = detect_phishing(safe_text, safe_sender)
 
-    reasons = generate_ai_explanation(safe_text, safe_sender, result["label"], result["confidence"])
-    if reasons:
-        result["reasons"] = reasons
+    # Deterministic findings are the source of truth and are never replaced.
+    deterministic_reasons: list = list(result.get("reasons", []))
+
+    try:
+        ai_reasons = generate_ai_explanation(safe_text, safe_sender, result["label"], result["risk_score"])
+    except Exception:
+        ai_reasons = None
+    if ai_reasons and ai_reasons != ["AI explanation unavailable."]:
+        result["ai_explanation"] = ai_reasons
+        result["explanation_source"] = "ai"
+    else:
+        result["ai_explanation"] = None
+        result["explanation_source"] = "deterministic"
+    result["signals"] = deterministic_reasons
+    result["reasons"] = deterministic_reasons
+    result["status"] = "completed"
 
     email_hash = hashlib.md5(
         (safe_text.strip().lower() + safe_sender.strip().lower()).encode()
@@ -47,7 +83,7 @@ def predict_email(request: PredictionRequest):
     cursor.execute("SELECT id, scan_count FROM scan_history WHERE email_hash = ?", (email_hash,))
     existing = cursor.fetchone()
 
-    reasons_json = json.dumps(reasons)
+    reasons_json = json.dumps(deterministic_reasons)
 
     if existing:
         cursor.execute("""

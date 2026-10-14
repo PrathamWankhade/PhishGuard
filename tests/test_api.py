@@ -38,7 +38,7 @@ def test_predict_empty_text():
         "/api/v1/predict",
         json={"email_text": "", "sender": "test@test.com"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 422
 
 
 def test_predict_missing_sender():

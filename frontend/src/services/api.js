@@ -12,7 +12,7 @@ const suspiciousTerms = [
   'limited time', 'expires', 'donation',
 ];
 
-function localFallback(emailText, sender = '') {
+export function heuristicEstimate(emailText, sender = '') {
   const lower = `${emailText} ${sender}`.toLowerCase();
 
   const matched = suspiciousTerms.filter((term) => lower.includes(term));
@@ -32,11 +32,16 @@ function localFallback(emailText, sender = '') {
   if (reasons.length === 0) reasons.push('No strong phishing indicators found in the text');
 
   return {
+    status: 'heuristic-only',
     label,
+    verdict: label,
     confidence: score,
+    risk_score: score,
     risk_level: score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low',
     reasons,
-    source: 'frontend-fallback',
+    signals: reasons,
+    source: 'frontend-heuristic',
+    warning: 'ML detector unavailable — heuristic estimate only, not equivalent to model prediction.',
   };
 }
 
@@ -46,21 +51,23 @@ export async function scanEmail(payload) {
     sender: payload.sender || '',
   };
 
+  let response;
   try {
-    const response = await fetch(`${API_BASE_URL}/predict`, {
+    response = await fetch(`${API_BASE_URL}/predict`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      throw new Error(`Backend responded with ${response.status}: ${errorText}`);
-    }
-
-    return await response.json();
   } catch (error) {
-    console.error('Backend unavailable, using local fallback:', error.message);
-    return localFallback(payload.email_text, payload.sender);
+    // No silent fallback: caller must handle unavailable state explicitly.
+    throw new Error(`Detection service unavailable: ${error.message}`);
   }
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`Backend responded with ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return { status: 'completed', ...data };
 }

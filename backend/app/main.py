@@ -16,6 +16,7 @@ from backend.app.database.db import init_db
 rate_limit_store = defaultdict(list)
 RATE_LIMIT = 60
 RATE_LIMIT_WINDOW = 60
+MAX_TRACKED_CLIENTS = 5000
 
 
 @asynccontextmanager
@@ -52,12 +53,20 @@ app.add_middleware(
 async def rate_limit_middleware(request: Request, call_next):
     if request.url.path.startswith("/api/"):
         client_ip = request.client.host if request.client else "unknown"
+        # Trust X-Forwarded-For only when set by a configured proxy is out of
+        # scope for Phase 1; document that proxy deployments must configure it.
         now = time.time()
         window_start = now - RATE_LIMIT_WINDOW
-        rate_limit_store[client_ip] = [t for t in rate_limit_store[client_ip] if t > window_start]
-        if len(rate_limit_store[client_ip]) >= RATE_LIMIT:
+        bucket = [t for t in rate_limit_store.get(client_ip, []) if t > window_start]
+        if len(bucket) >= RATE_LIMIT:
+            rate_limit_store[client_ip] = bucket
             return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded. Try again later."})
-        rate_limit_store[client_ip].append(now)
+        bucket.append(now)
+        rate_limit_store[client_ip] = bucket
+        # Bound memory: evict oldest client buckets when too many are tracked.
+        if len(rate_limit_store) > MAX_TRACKED_CLIENTS:
+            oldest = next(iter(rate_limit_store))
+            rate_limit_store.pop(oldest, None)
     return await call_next(request)
 
 
@@ -73,7 +82,30 @@ def root():
 
 @app.get("/health")
 def health():
+    # Liveness only: process is running. See /ready for model readiness.
     return {"status": "healthy", "service": "phishing-detection-api", "version": "2.0.0"}
+
+
+@app.get("/ready")
+def ready():
+    """Readiness: verify model artifacts exist and are loadable."""
+    from pathlib import Path
+
+    base = Path(__file__).resolve().parents[3]
+    model_path = base / "trained_models" / "phishing_model.pkl"
+    vectorizer_path = base / "trained_models" / "tfidf_vectorizer.pkl"
+    model_ok = model_path.exists() and vectorizer_path.exists()
+    status = "ready" if model_ok else "not_ready"
+    code = 200 if model_ok else 503
+    return JSONResponse(
+        status_code=code,
+        content={
+            "status": status,
+            "model_loaded": model_ok,
+            "model_path": str(model_path),
+            "vectorizer_path": str(vectorizer_path),
+        },
+    )
 
 
 app.include_router(api_router, prefix=API_PREFIX)
