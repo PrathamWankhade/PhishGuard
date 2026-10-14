@@ -26,8 +26,11 @@ layered accordingly.
   production; without it the server runs in open dev mode.
 - The SPA's `VITE_API_KEY` is public by construction (bundled JS). Treat it
   as a shared-client convenience for single-operator deployments, never as a
-  user-authentication boundary. Multi-user production needs session auth or a
-  backend-for-frontend plus per-user history isolation (not implemented).
+  user-authentication boundary. To limit blast radius, the key is attached
+  only to gated read routes (history/dashboard); the open `/predict` and
+  `/upload` endpoints never receive it. Multi-user production needs session
+  auth or a backend-for-frontend plus per-user history isolation (not
+  implemented).
 - Per-user history isolation is **not yet implemented** — do not store
   multiple users' mail without adding authentication + tenant-scoped queries.
 - External AI processing sends up to 2,000 characters per scan to OpenRouter.
@@ -50,8 +53,10 @@ layered accordingly.
 
 ## Operational honesty
 
-- `/health` = liveness; `/ready` = model readiness. Wire load balancers and
-  Docker healthchecks to `/ready`.
+- `/health` = liveness; `/ready` = model readiness. Artifacts are validated
+  once at startup and cached (60s TTL) so orchestrator probes never pay a
+  `joblib.load` per call. Wire load balancers and Docker healthchecks to
+  `/ready`.
 - The model loader fails loudly at inference time if artifacts are missing;
   the API never returns a fabricated safe verdict.
 - History/dashboard responses contain no demo data; the frontend's Demo Mode

@@ -20,11 +20,54 @@ MAX_TRACKED_CLIENTS = 5000
 # Reject oversized request bodies before parsing (upload route has its own 2MB file cap).
 MAX_BODY_BYTES = 200_000
 
+# Cached readiness: artifacts are validated once (or on TTL expiry), not
+# joblib-loaded on every orchestrator probe.
+import threading as _threading
+
+_ready_cache = {"at": 0.0, "ok": False, "detail": {}}
+_ready_lock = _threading.Lock()
+READY_TTL_SECONDS = 60
+
+
+def _evaluate_readiness() -> tuple[bool, dict]:
+    """Load artifacts and return (ok, detail). Slow path — call under cache."""
+    from pathlib import Path
+
+    # backend/app/main.py -> parents[2] is the repository root.
+    base = Path(__file__).resolve().parents[2]
+    model_path = base / "trained_models" / "phishing_model.pkl"
+    vectorizer_path = base / "trained_models" / "tfidf_vectorizer.pkl"
+    if not (model_path.exists() and vectorizer_path.exists()):
+        return False, {"reason": "artifacts missing"}
+    try:
+        import joblib
+
+        model = joblib.load(model_path)
+        vectorizer = joblib.load(vectorizer_path)
+        assert hasattr(model, "predict") and hasattr(model, "classes_")
+        vectorizer.transform(["readiness probe"])
+        return True, {"model_classes": [str(c) for c in list(model.classes_)]}
+    except Exception as e:
+        return False, {"reason": f"artifact load failed: {e}"}
+
+
+def get_readiness() -> tuple[bool, dict]:
+    now = time.time()
+    with _ready_lock:
+        if now - _ready_cache["at"] < READY_TTL_SECONDS and _ready_cache["at"] > 0:
+            return _ready_cache["ok"], _ready_cache["detail"]
+    ok, detail = _evaluate_readiness()
+    with _ready_lock:
+        _ready_cache.update({"at": time.time(), "ok": ok, "detail": detail})
+    return ok, detail
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     print("SQLite database initialized")
+    ok, detail = get_readiness()  # pre-warm readiness cache at startup
+    print(f"Model readiness: {'ready' if ok else 'NOT READY'} {detail}")
     yield
 
 
@@ -101,45 +144,17 @@ def health():
 
 @app.get("/ready")
 def ready():
-    """Readiness: model artifacts exist AND load successfully.
-
-    Returns 503 for missing, corrupt, or incompatible artifacts — never
-    imply readiness from file existence alone.
-    """
-    from pathlib import Path
-
-    # backend/app/main.py -> parents[2] is the repository root.
-    base = Path(__file__).resolve().parents[2]
-    model_path = base / "trained_models" / "phishing_model.pkl"
-    vectorizer_path = base / "trained_models" / "tfidf_vectorizer.pkl"
-    if not (model_path.exists() and vectorizer_path.exists()):
+    """Readiness from the cached model-service state (validated at startup,
+    re-validated at most every READY_TTL_SECONDS)."""
+    ok, detail = get_readiness()
+    if not ok:
         return JSONResponse(
             status_code=503,
-            content={"status": "not_ready", "model_loaded": False, "reason": "artifacts missing"},
-        )
-    try:
-        import joblib
-
-        model = joblib.load(model_path)
-        vectorizer = joblib.load(vectorizer_path)
-        # Minimal compatibility: classifier with classes_ + transformable vectorizer.
-        assert hasattr(model, "predict") and hasattr(model, "classes_")
-        vectorizer.transform(["readiness probe"])
-        detail = {"model_classes": [str(c) for c in list(model.classes_)]}
-    except Exception as e:
-        return JSONResponse(
-            status_code=503,
-            content={"status": "not_ready", "model_loaded": False, "reason": f"artifact load failed: {e}"},
+            content={"status": "not_ready", "model_loaded": False, **detail},
         )
     return JSONResponse(
         status_code=200,
-        content={
-            "status": "ready",
-            "model_loaded": True,
-            "model_path": str(model_path),
-            "vectorizer_path": str(vectorizer_path),
-            **detail,
-        },
+        content={"status": "ready", "model_loaded": True, **detail},
     )
 
 

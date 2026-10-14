@@ -97,9 +97,13 @@ def predict_email(email_text: str, sender: str = "") -> dict:
     prediction = model.predict(vectorized)[0]
     probabilities = model.predict_proba(vectorized)[0]
     classes = list(model.classes_)
+    if "phishing" not in classes:
+        raise RuntimeError(f"Model classes {classes} missing 'phishing'; refusing to score.")
     # Phishing-class probability: the model's estimate that THIS email is
     # phishing. Distinct from max-class confidence below.
     phishing_probability = round(float(probabilities[classes.index("phishing")]), 4)
+    if not 0.0 <= phishing_probability <= 1.0:
+        raise RuntimeError(f"Invalid phishing_probability {phishing_probability}; refusing to score.")
     confidence = round(max(probabilities) * 100, 2)
 
     if confidence >= 75:

@@ -35,13 +35,9 @@ def test_model_and_risk_fields_are_separate():
     assert 0 <= result["risk_score"] <= 99
 
 
-@pytest.mark.model
 def test_confident_legitimate_is_not_phishing_by_score_alone():
-    """P0 regression: model P(legitimate)=0.96 must not yield a phishing verdict.
-
-    Mocks the classifier (no artifacts needed) and asserts the risk score
-    starts from the phishing-class probability, not max-class confidence.
-    """
+    """P0 regression (CI-safe, mocked model): P(legitimate)=0.96 must not
+    yield a phishing verdict. No trained artifacts needed."""
     from unittest.mock import patch as _patch
 
     fake_prediction = {
@@ -65,6 +61,49 @@ def test_confident_legitimate_is_not_phishing_by_score_alone():
     assert result["phishing_probability"] == 0.04
     assert result["risk_score"] < 45
     assert result["verdict"] == "Safe Email"
+
+
+def _mocked_verdict(phishing_probability: float) -> dict:
+    from unittest.mock import patch as _patch
+
+    fake = {
+        "label": "Safe Email",
+        "prediction": "legitimate" if phishing_probability < 0.5 else "phishing",
+        "confidence": 99.0,
+        "phishing_probability": phishing_probability,
+        "risk_level": "low",
+        "reasons": [],
+        "source": "ml-model",
+    }
+    with _patch(
+        "backend.app.services.phishing_detector.predict_email", return_value=fake
+    ):
+        return detect_phishing("plain business email, no links.", "a@company.com")
+
+
+def test_risk_tracks_phishing_probability_exactly():
+    # No evidence contributions: risk must equal P(phishing)*100.
+    assert _mocked_verdict(0.5)["risk_score"] == 50.0
+    assert _mocked_verdict(0.0)["risk_score"] == 0.0
+
+
+def test_verdict_boundaries():
+    assert _mocked_verdict(0.10)["verdict"] == "Safe Email"
+    assert _mocked_verdict(0.50)["verdict"] == "Suspicious Email"
+    assert _mocked_verdict(0.80)["verdict"] == "Phishing Email"
+
+
+def test_missing_or_invalid_probability_fails_loudly():
+    import pytest as _pytest
+    from unittest.mock import patch as _patch
+
+    for bad in ({"prediction": "legitimate", "confidence": 99.0},
+                {"prediction": "x", "confidence": 1.0, "phishing_probability": 1.5}):
+        with _patch(
+            "backend.app.services.phishing_detector.predict_email", return_value=bad
+        ):
+            with _pytest.raises(RuntimeError):
+                detect_phishing("hello", "a@b.com")
 
 
 @pytest.mark.model
@@ -106,6 +145,9 @@ def test_trailing_punctuation_not_captured():
 def test_homograph_mixed_script_flagged():
     assert is_homograph("раураl.com")  # Cyrillic 'а' mixed with Latin 'l'
     assert is_homograph("secure-раyраl.com")
+    assert is_homograph("xn--pypal-4ve.com")  # punycode-encoded mixed label
+    assert is_homograph("paypаl.com")  # Cyrillic 'а' at the end
+    assert is_homograph("gοοgle.com")  # Greek omicron in Latin label
 
 
 def test_homograph_legitimate_names_allowed():

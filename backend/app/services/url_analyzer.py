@@ -16,6 +16,25 @@ def _is_latin_char(c: str) -> bool:
         return False
 
 
+# Scripts that legitimately co-occur in one label (e.g. Japanese mixes
+# Kanji/Hiragana/Katakana). Grouped so single-family names are not flagged.
+SCRIPT_FAMILIES = {
+    "CJK": "japanese",
+    "HIRAGANA": "japanese",
+    "KATAKANA": "japanese",
+}
+
+
+def _script_of(c: str) -> str:
+    if ord(c) < 128 or _is_latin_char(c):
+        return "latin"
+    try:
+        first = unicodedata.name(c).split()[0]
+    except ValueError:
+        return "UNKNOWN"
+    return SCRIPT_FAMILIES.get(first, first)
+
+
 def is_homograph(domain: str) -> bool:
     """Detect likely lookalike (homograph) domains.
 
@@ -31,19 +50,26 @@ def is_homograph(domain: str) -> bool:
         domain.encode("idna")
     except Exception:
         return True
-    for label in domain.lower().split("."):
-        if not label or all(ord(c) < 128 for c in label):
+    for raw_label in domain.lower().split("."):
+        if not raw_label:
+            continue
+        label = raw_label
+        if label.startswith("xn--"):
+            # Punycode input: decode before script analysis.
+            try:
+                label = label.encode("ascii").decode("idna")
+            except Exception:
+                return True
+        if all(ord(c) < 128 for c in label):
             continue
         scripts = set()
         for c in label:
-            if ord(c) < 128 or _is_latin_char(c):
-                scripts.add("latin")
-            else:
-                try:
-                    scripts.add(unicodedata.name(c).split()[0])
-                except ValueError:
-                    scripts.add("UNKNOWN")
+            scripts.add(_script_of(c))
         if "latin" in scripts and len(scripts) > 1:
+            return True
+        # Mixed non-Latin scripts in one label (e.g. Cyrillic + Greek) is
+        # also a classic spoof pattern even without Latin characters.
+        if "latin" not in scripts and len(scripts) > 1:
             return True
     return False
 

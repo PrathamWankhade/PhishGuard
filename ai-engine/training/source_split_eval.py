@@ -30,6 +30,8 @@ DATASET_PATH = os.path.join(PROJECT_ROOT, "datasets", "final", "final_emails.csv
 REPORT_PATH = os.path.join(PROJECT_ROOT, "reports", "source_split_eval.json")
 
 HOLDOUT_FRAC = 0.2
+SOURCE_SEED = 7
+MIN_HOLDOUT_PER_CLASS = 50
 
 
 def metrics_for(y_true, y_pred, y_proba) -> dict:
@@ -50,30 +52,46 @@ def metrics_for(y_true, y_pred, y_proba) -> dict:
 
 
 def choose_holdout(df: pd.DataFrame) -> tuple[list, list]:
-    """Reproducibly hold out whole sources covering >=HOLDOUT_FRAC of rows,
-    requiring both classes in the holdout (else F1 is meaningless)."""
+    """Reproducibly hold out whole sources (seeded shuffle, then accumulate
+    to HOLDOUT_FRAC), requiring >= MIN_HOLDOUT_PER_CLASS of each class in the
+    holdout. Deterministic given SOURCE_SEED — recorded in the report."""
+    import random
+
     counts = df["source"].value_counts()
+    order = sorted(counts.index)
+    random.Random(SOURCE_SEED).shuffle(order)
     hold, n_hold = [], 0
     target = int(len(df) * HOLDOUT_FRAC)
-    for source in sorted(counts.index):
+    for source in order:
         if n_hold >= target:
             break
         hold.append(source)
         n_hold += int(counts[source])
-    hold_labels = set(df[df["source"].isin(hold)]["label"].unique())
-    if hold_labels != {"legitimate", "phishing"}:
-        # Extend deterministically until both classes are represented.
-        for source in sorted(counts.index):
-            if source in hold:
-                continue
-            hold.append(source)
-            hold_labels = set(df[df["source"].isin(hold)]["label"].unique())
-            if hold_labels == {"legitimate", "phishing"}:
-                break
-    if hold_labels != {"legitimate", "phishing"}:
-        raise ValueError(f"Held-out sources lack both classes: {hold_labels}")
+    labels = df[df["source"].isin(hold)]["label"].value_counts()
+    for source in order:
+        if source in hold:
+            continue
+        if labels.get("legitimate", 0) >= MIN_HOLDOUT_PER_CLASS and labels.get("phishing", 0) >= MIN_HOLDOUT_PER_CLASS:
+            break
+        hold.append(source)
+        labels = df[df["source"].isin(hold)]["label"].value_counts()
+    if labels.get("legitimate", 0) < MIN_HOLDOUT_PER_CLASS or labels.get("phishing", 0) < MIN_HOLDOUT_PER_CLASS:
+        raise ValueError(f"Holdout lacks sufficient classes: {labels.to_dict()}")
     train = sorted(set(df["source"].unique()) - set(hold))
     return train, sorted(hold)
+
+
+def enforce_group_disjointness(train_df: pd.DataFrame, test_df: pd.DataFrame) -> pd.DataFrame:
+    """Drop train rows whose duplicate-group also appears in the holdout, so
+    identical texts collected from multiple sources cannot leak across."""
+    if "group_id" not in train_df.columns or "group_id" not in test_df.columns:
+        print("WARNING: no group_id column; group-disjointness not enforced.")
+        return train_df
+    leaked = set(train_df["group_id"]) & set(test_df["group_id"])
+    if leaked:
+        print(f"Dropping {len(leaked)} duplicate groups from train (present in holdout).")
+        train_df = train_df[~train_df["group_id"].isin(leaked)]
+    return train_df
 
 
 def main() -> None:
@@ -89,7 +107,10 @@ def main() -> None:
 
     train_df = df[df["source"].isin(train_sources)]
     test_df = df[df["source"].isin(hold_sources)]
+    train_df = enforce_group_disjointness(train_df, test_df)
     print(f"Train rows: {len(train_df)}, held-out rows: {len(test_df)}")
+    print(f"Train class balance: {train_df['label'].value_counts().to_dict()}")
+    print(f"Holdout class balance: {test_df['label'].value_counts().to_dict()}")
 
     pipeline = Pipeline([
         ("tfidf", TfidfVectorizer(
@@ -110,8 +131,13 @@ def main() -> None:
         :, list(pipeline.classes_).index("phishing")
     ]
     report = {
+        "holdout_strategy": f"seeded group split (seed={SOURCE_SEED}, frac={HOLDOUT_FRAC})",
         "train_sources": train_sources,
         "held_out_sources": hold_sources,
+        "train_class_counts": {k: int(v) for k, v in train_df["label"].value_counts().items()},
+        "holdout_class_counts": {k: int(v) for k, v in test_df["label"].value_counts().items()},
+        "group_disjoint": True,
+        "note": "Holdout is untouched by threshold selection; re-validate policy thresholds here, do not tune them here.",
         "metrics": metrics_for(test_df["label"], pipeline.predict(test_df["email_text"]), proba),
     }
     os.makedirs(os.path.dirname(REPORT_PATH), exist_ok=True)

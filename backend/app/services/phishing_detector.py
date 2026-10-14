@@ -58,7 +58,13 @@ def detect_phishing(
     # Raw model output — never overwritten by heuristics.
     model_prediction = prediction["prediction"]
     model_confidence = prediction["confidence"]
-    phishing_probability = float(prediction.get("phishing_probability", 0.0))
+    # Strict contract: a missing/invalid phishing probability must fail
+    # loudly, never silently become a safe-looking zero.
+    if "phishing_probability" not in prediction:
+        raise RuntimeError("Inference result missing phishing_probability; refusing to score.")
+    phishing_probability = float(prediction["phishing_probability"])
+    if not 0.0 <= phishing_probability <= 1.0:
+        raise RuntimeError(f"Invalid phishing_probability {phishing_probability}; refusing to score.")
 
     # Combined policy score. Model risk comes from the PHISHING-CLASS
     # probability: confident-legitimate mail contributes ~0, not ~100.

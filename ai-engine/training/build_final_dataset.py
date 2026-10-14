@@ -196,17 +196,25 @@ def canonical_key(text: str) -> str:
     normalized = re.sub(r"\s+", " ", (text or "").strip().lower())
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
-seen: dict[str, str] = {}
+seen: dict[str, int] = {}
 deduped = []
 conflicts = 0
 for r in all_rows:
     key = canonical_key(r["email_text"])
     if key not in seen:
-        seen[key] = r["label"]
+        seen[key] = len(deduped)
+        r["sources"] = r.get("source", "")
         deduped.append(r)
-    elif seen[key] != r["label"]:
-        # Same normalized text, conflicting label: keep first, count it.
-        conflicts += 1
+    else:
+        # Same normalized text seen before: merge provenance, keep first.
+        first = deduped[seen[key]]
+        src = r.get("source", "")
+        prior = first.get("sources", "").split("|") if first.get("sources") else []
+        if src and src not in prior:
+            prior.append(src)
+            first["sources"] = "|".join(prior)
+        if first["label"] != r["label"]:
+            conflicts += 1
 print(f"  Label conflicts on duplicate text: {conflicts} (first occurrence kept)")
 
 print(f"  After dedup: {len(deduped)} rows (removed {len(all_rows) - len(deduped)})")
@@ -219,10 +227,19 @@ print(f"  Legitimate: {c_legit}  ({c_legit/len(deduped)*100:.1f}%)")
 print(f"  Phishing:   {c_phish}  ({c_phish/len(deduped)*100:.1f}%)")
 
 with open(OUTPUT, "w", encoding="utf-8", newline="") as f:
-    writer = csv.DictWriter(f, fieldnames=["email_text", "label", "source"])
+    writer = csv.DictWriter(f, fieldnames=["email_text", "label", "source", "sources", "group_id"])
     writer.writeheader()
     for r in deduped:
-        writer.writerow({"email_text": r["email_text"], "label": r["label"], "source": r.get("source", "")})
+        writer.writerow({
+            "email_text": r["email_text"],
+            "label": r["label"],
+            "source": r.get("source", ""),
+            # All contributing sources for this normalized text (pipe-joined),
+            # plus a stable duplicate-group id so related records can be kept
+            # disjoint across train/test splits.
+            "sources": r.get("sources", r.get("source", "")),
+            "group_id": canonical_key(r["email_text"]),
+        })
 
 # Provenance manifest alongside the dataset.
 import json as _json
@@ -233,6 +250,7 @@ manifest = {
     "legitimate": c_legit,
     "phishing": c_phish,
     "dedup": "sha256 of normalized full text",
+    "conflicting_labels": conflicts,
     "sources": sorted({r.get("source", "") for r in deduped}),
 }
 with open(FINAL_DIR / "dataset_manifest.json", "w", encoding="utf-8") as f:

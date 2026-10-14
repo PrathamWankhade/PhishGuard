@@ -28,6 +28,11 @@ evaluation therefore reports the full suite:
 3. **Source-separated holdout** — `source_split_eval.py` holds out entire
    dataset sources/campaigns when the `source` column exists. This is the
    realistic generalization estimate; expect it below the random-split score.
+   Safeguards: seeded source order (`SOURCE_SEED`), minimum 50 rows per class
+   in the holdout, exact sources + class counts recorded in the report,
+   duplicate-group (`group_id`) disjointness enforced so identical texts from
+   multiple sources cannot leak across, and the holdout is never used for
+   threshold selection.
 4. **Frozen test data** — the final test split is never used for model or
    threshold selection. Thresholds (75/45) must be re-validated here, not
    tuned here.
@@ -43,7 +48,8 @@ evaluation therefore reports the full suite:
   split strategy, CV statistics, test metrics, sklearn version, and dataset
   row counts for every release.
 - `datasets/final/dataset_manifest.json` records provenance, class balance,
-  dedup method (SHA-256 of normalized full text), and source list.
+  dedup method (SHA-256 of normalized full text), conflicting-label counts,
+  and source list.
 - Artifact integrity: training prints SHA-256 of both `.pkl` files;
   `/ready` verifies their presence at serving time.
 

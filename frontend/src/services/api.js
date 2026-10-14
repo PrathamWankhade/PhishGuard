@@ -1,9 +1,4 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
-const API_KEY = import.meta.env.VITE_API_KEY || '';
-
-function authHeaders(extra = {}) {
-  return API_KEY ? { ...extra, 'X-API-Key': API_KEY } : extra;
-}
 
 const suspiciousTerms = [
   'urgent', 'verify', 'password', 'otp', 'bank', 'suspended',
@@ -61,9 +56,13 @@ export async function scanEmail(payload) {
 
   let response;
   try {
+    // NOTE: /predict is unauthenticated by design, so no API key is sent
+    // here. The key (if configured) is only attached to gated routes, and
+    // even then it is public-by-construction in a browser bundle — suitable
+    // for single-operator deployments, not multi-user auth.
     response = await fetch(`${API_BASE_URL}/predict`, {
       method: 'POST',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
     });
   } catch (error) {
