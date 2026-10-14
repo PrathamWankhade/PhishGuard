@@ -1,9 +1,13 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai-engine"))
 
 from training.evaluate_model import evaluate_model
+
+pytestmark = pytest.mark.model
 
 
 def test_model_accuracy_threshold():

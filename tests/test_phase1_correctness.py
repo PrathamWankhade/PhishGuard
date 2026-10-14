@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "ai-engine"))
@@ -11,6 +13,7 @@ from backend.app.services.url_analyzer import analyze_urls, is_homograph
 from backend.app.services.phishing_detector import detect_phishing
 
 
+@pytest.mark.model
 def test_model_and_risk_fields_are_separate():
     result = detect_phishing(
         "URGENT verify your password at https://login.example.xyz",
@@ -29,6 +32,7 @@ def test_model_and_risk_fields_are_separate():
     assert result["risk_score"] >= result["model_confidence"]
 
 
+@pytest.mark.model
 def test_contradictory_label_case_is_documented():
     # Legitimate-looking text with risky sender/URL must keep raw model class
     # visible even when the verdict differs by policy.
@@ -72,6 +76,7 @@ def test_homograph_allows_legitimate_idn_without_mixed_script():
     assert is_homograph("xn--pypal-4ve.com") or is_homograph("раураl.com") or True
 
 
+@pytest.mark.model
 def test_ai_failure_preserves_deterministic_findings():
     from fastapi.testclient import TestClient
     from backend.app.main import app

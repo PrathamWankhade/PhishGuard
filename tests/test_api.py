@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from backend.app.main import app
 
 
+@pytest.mark.model
 def test_predict_endpoint():
     client = TestClient(app)
     response = client.post(
@@ -21,6 +22,7 @@ def test_predict_endpoint():
     assert len(data["reasons"]) > 0
 
 
+@pytest.mark.model
 def test_predict_safe_email():
     client = TestClient(app)
     response = client.post(
@@ -41,6 +43,7 @@ def test_predict_empty_text():
     assert response.status_code == 422
 
 
+@pytest.mark.model
 def test_predict_missing_sender():
     client = TestClient(app)
     response = client.post(

@@ -2,6 +2,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -37,6 +39,7 @@ def test_bec_clean_email_no_risk():
     assert out["risk"] == 0
 
 
+@pytest.mark.model
 def test_detector_includes_new_evidence_channels():
     from backend.app.services.phishing_detector import detect_phishing
     out = detect_phishing(

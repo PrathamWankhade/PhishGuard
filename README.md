@@ -117,10 +117,11 @@ docker/ + compose      # backend image, SPA + Nginx, volumes, healthchecks
 Done: unified verdict contract, URL evidence model, explicit unavailable
 states, explanation resilience, Pipeline-CV training, full-text dataset
 dedup, MIME parsing, upload validation, dashboard semantics, Docker
-readiness, API-key gating, auth/BEC signals, feedback loop.
+readiness, API-key gating, auth/BEC signals, feedback loop, CI pipeline
+(`backend` model-independent tests + `frontend` production build).
 
 Next: per-user history isolation, Redis-backed rate limiting, SSRF-safe URL
-reputation, transformer benchmark on the frozen test set, CI pipeline.
+reputation, transformer benchmark on the frozen test set.
 
 ## Author
 
