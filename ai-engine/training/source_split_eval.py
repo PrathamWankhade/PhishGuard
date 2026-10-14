@@ -1,26 +1,35 @@
-"""Source-separated evaluation: realistic estimate on unseen campaigns.
+"""Source-separated evaluation WITHOUT leakage.
 
-Splits by the `source` column when present (entire datasets/campaigns held
-out); falls back to a stratified random split otherwise. Reports phishing
-precision/recall/F1, false-positive/negative rates, log loss and Brier
-score alongside accuracy. Run: python ai-engine/training/source_split_eval.py
+Protocol (in this order):
+  1. Split SOURCES first (entire campaigns held out, reproducibly).
+  2. Train a FRESH Pipeline(TFIDF -> ensemble) on train sources ONLY.
+  3. Evaluate ONLY on held-out sources the model never saw.
+
+This measures generalization to unseen campaigns. Never evaluate a model on
+rows it trained on and call it source-separated.
+
+Run:  python ai-engine/training/source_split_eval.py
 """
+import json
 import os
-import sys
+
 import joblib
 import pandas as pd
-
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score,
-    confusion_matrix, log_loss, brier_score_loss,
+    accuracy_score, brier_score_loss, confusion_matrix, f1_score, log_loss,
+    precision_score, recall_score,
 )
+from sklearn.pipeline import Pipeline
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, PROJECT_ROOT)
 
 DATASET_PATH = os.path.join(PROJECT_ROOT, "datasets", "final", "final_emails.csv")
-MODEL_PATH = os.path.join(PROJECT_ROOT, "trained_models", "phishing_model.pkl")
-VECTORIZER_PATH = os.path.join(PROJECT_ROOT, "trained_models", "tfidf_vectorizer.pkl")
+REPORT_PATH = os.path.join(PROJECT_ROOT, "reports", "source_split_eval.json")
+
+HOLDOUT_FRAC = 0.2
 
 
 def metrics_for(y_true, y_pred, y_proba) -> dict:
@@ -35,37 +44,81 @@ def metrics_for(y_true, y_pred, y_proba) -> dict:
         "false_negative_rate": round(float(fn / (fn + tp)) if (fn + tp) else 0.0, 4),
         "log_loss": round(float(log_loss((y_true == "phishing").astype(int), y_proba)), 4),
         "brier_score": round(float(brier_score_loss((y_true == "phishing").astype(int), y_proba)), 4),
+        "confusion_matrix": cm.tolist(),
         "n": int(len(y_true)),
     }
 
 
+def choose_holdout(df: pd.DataFrame) -> tuple[list, list]:
+    """Reproducibly hold out whole sources covering >=HOLDOUT_FRAC of rows,
+    requiring both classes in the holdout (else F1 is meaningless)."""
+    counts = df["source"].value_counts()
+    hold, n_hold = [], 0
+    target = int(len(df) * HOLDOUT_FRAC)
+    for source in sorted(counts.index):
+        if n_hold >= target:
+            break
+        hold.append(source)
+        n_hold += int(counts[source])
+    hold_labels = set(df[df["source"].isin(hold)]["label"].unique())
+    if hold_labels != {"legitimate", "phishing"}:
+        # Extend deterministically until both classes are represented.
+        for source in sorted(counts.index):
+            if source in hold:
+                continue
+            hold.append(source)
+            hold_labels = set(df[df["source"].isin(hold)]["label"].unique())
+            if hold_labels == {"legitimate", "phishing"}:
+                break
+    if hold_labels != {"legitimate", "phishing"}:
+        raise ValueError(f"Held-out sources lack both classes: {hold_labels}")
+    train = sorted(set(df["source"].unique()) - set(hold))
+    return train, sorted(hold)
+
+
 def main() -> None:
     df = pd.read_csv(DATASET_PATH)
-    model = joblib.load(MODEL_PATH)
-    vectorizer = joblib.load(VECTORIZER_PATH)
-    phish_idx = list(model.classes_).index("phishing")
+    if "source" not in df.columns:
+        raise SystemExit(
+            "Dataset has no 'source' column. Rebuild with "
+            "ai-engine/training/build_final_dataset.py first."
+        )
+    train_sources, hold_sources = choose_holdout(df)
+    print(f"Train sources ({len(train_sources)}): {train_sources}")
+    print(f"Held-out sources ({len(hold_sources)}): {hold_sources}")
 
-    if "source" in df.columns and df["source"].nunique() >= 3:
-        # Hold out ~20% of sources (entire campaigns unseen in training).
-        sources = sorted(df["source"].unique())
-        n_hold = max(1, int(len(sources) * 0.2))
-        hold = set(sources[:n_hold])
-        test = df[df["source"].isin(hold)]
-        print(f"Holding out {len(hold)} entire sources: {sorted(hold)}")
-        Xt = vectorizer.transform(test["email_text"])
-        pred = model.predict(Xt)
-        proba = model.predict_proba(Xt)[:, phish_idx]
-        print(metrics_for(test["label"], pred, proba))
-    else:
-        print("No source column: run train_model.py to rebuild the dataset with provenance, then re-run.")
+    train_df = df[df["source"].isin(train_sources)]
+    test_df = df[df["source"].isin(hold_sources)]
+    print(f"Train rows: {len(train_df)}, held-out rows: {len(test_df)}")
 
-    # Always report the conventional stratified holdout for comparison.
-    from sklearn.model_selection import train_test_split
-    _, X_test, _, y_test = train_test_split(
-        df["email_text"], df["label"], test_size=0.2, random_state=42, stratify=df["label"]
-    )
-    Xt = vectorizer.transform(X_test)
-    print("Stratified holdout:", metrics_for(y_test, model.predict(Xt), model.predict_proba(Xt)[:, phish_idx]))
+    pipeline = Pipeline([
+        ("tfidf", TfidfVectorizer(
+            stop_words="english", max_features=50000,
+            ngram_range=(1, 3), sublinear_tf=True,
+        )),
+        ("clf", VotingClassifier(
+            estimators=[
+                ("lr", LogisticRegression(max_iter=2000, class_weight="balanced", random_state=42, C=1.0)),
+                ("rf", RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=42, n_jobs=-1)),
+            ],
+            voting="soft",
+        )),
+    ])
+    pipeline.fit(train_df["email_text"], train_df["label"])
+
+    proba = pipeline.predict_proba(test_df["email_text"])[
+        :, list(pipeline.classes_).index("phishing")
+    ]
+    report = {
+        "train_sources": train_sources,
+        "held_out_sources": hold_sources,
+        "metrics": metrics_for(test_df["label"], pipeline.predict(test_df["email_text"]), proba),
+    }
+    os.makedirs(os.path.dirname(REPORT_PATH), exist_ok=True)
+    with open(REPORT_PATH, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+    print(json.dumps(report, indent=2))
+    print(f"Saved: {REPORT_PATH}")
 
 
 if __name__ == "__main__":

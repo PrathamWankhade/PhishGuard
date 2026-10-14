@@ -4,14 +4,16 @@ from backend.app.controllers.upload_controller import parse_uploaded_email
 router = APIRouter(prefix="/upload", tags=["upload"])
 
 MAX_UPLOAD_BYTES = 2_000_000
-ALLOWED_EXTENSIONS = (".eml", ".txt", ".msg")
+# NOTE: Outlook .msg is an OLE binary format, not RFC-822 text. Rejected until
+# a genuine MSG parser is implemented (email_parser handles text MIME only).
+ALLOWED_EXTENSIONS = (".eml", ".txt")
 
 
 @router.post("")
 async def upload_email(file: UploadFile) -> dict:
     name = (file.filename or "").lower()
     if not name.endswith(ALLOWED_EXTENSIONS):
-        raise HTTPException(status_code=415, detail="Only .eml, .txt, .msg files are accepted.")
+        raise HTTPException(status_code=415, detail="Only .eml and .txt files are accepted.")
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 2MB limit.")

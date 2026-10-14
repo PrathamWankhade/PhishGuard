@@ -196,13 +196,18 @@ def canonical_key(text: str) -> str:
     normalized = re.sub(r"\s+", " ", (text or "").strip().lower())
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
-seen = set()
+seen: dict[str, str] = {}
 deduped = []
+conflicts = 0
 for r in all_rows:
     key = canonical_key(r["email_text"])
     if key not in seen:
-        seen.add(key)
+        seen[key] = r["label"]
         deduped.append(r)
+    elif seen[key] != r["label"]:
+        # Same normalized text, conflicting label: keep first, count it.
+        conflicts += 1
+print(f"  Label conflicts on duplicate text: {conflicts} (first occurrence kept)")
 
 print(f"  After dedup: {len(deduped)} rows (removed {len(all_rows) - len(deduped)})")
 random.seed(42)

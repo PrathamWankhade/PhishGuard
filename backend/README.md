@@ -18,11 +18,12 @@ backend/
     │   ├── schema.py           # Table definitions + migration support
     │   └── models.py           # CRUD operations (insert, query, update)
     ├── services/               # Business logic
-    │   ├── phishing_detector.py    # ML model loading + prediction
-    │   ├── prediction_service.py   # Orchestrates full scan pipeline
-    │   ├── url_analyzer.py         # TLD check, homograph detection
+    │   ├── phishing_detector.py    # Decision engine: model + analyzers -> verdict
+    │   ├── url_analyzer.py         # Per-URL findings, hostname normalization
     │   ├── sender_analyzer.py      # Domain blocklist validation
-    │   ├── openrouter_explainer.py # LLM explanation via OpenRouter API
+    │   ├── auth_analyzer.py        # Reply-To / SPF / DKIM / DMARC signals
+    │   ├── bec_analyzer.py         # Fraud-pattern signals
+    │   ├── openrouter_explainer.py # LLM explanation via OpenRouter API (lazy client)
     │   └── explanation_engine.py   # Aggregates explanations
     ├── middleware/             # CORS, rate limiting, error handling
     ├── config/                 # Environment configuration

@@ -24,6 +24,10 @@ layered accordingly.
 - Sensitive routes (`/history`, `/dashboard`, `/analytics/*`, `/feedback*`)
   accept an API-key gate via `Depends(require_api_key)`. Set `API_KEYS` in
   production; without it the server runs in open dev mode.
+- The SPA's `VITE_API_KEY` is public by construction (bundled JS). Treat it
+  as a shared-client convenience for single-operator deployments, never as a
+  user-authentication boundary. Multi-user production needs session auth or a
+  backend-for-frontend plus per-user history isolation (not implemented).
 - Per-user history isolation is **not yet implemented** — do not store
   multiple users' mail without adding authentication + tenant-scoped queries.
 - External AI processing sends up to 2,000 characters per scan to OpenRouter.

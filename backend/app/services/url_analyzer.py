@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from urllib.parse import urlparse
 
 SUSPICIOUS_TLDS = {"xyz", "top", "click", "zip", "ru", "cn", "tk", "ml", "ga", "cf", "gq", "loan", "work", "bid", "date", "men", "download", "review", "stream", "trade", "webcam"}
@@ -6,32 +7,44 @@ URL_SHORTENERS = {"bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "
 PHISHING_PATTERNS = re.compile(r"(credential|authenticate|reset-password|secure-login|banking-verify)", re.IGNORECASE)
 
 
+def _is_latin_char(c: str) -> bool:
+    if ord(c) < 128:
+        return True
+    try:
+        return unicodedata.name(c).startswith("LATIN")
+    except ValueError:
+        return False
+
+
 def is_homograph(domain: str) -> bool:
     """Detect likely lookalike (homograph) domains.
 
-    Operates on the raw (unicode) hostname: pure-ASCII names are never
-    homographs; names with non-ASCII chars are flagged only when a single
-    label mixes latin and non-latin scripts (classic lookalike pattern).
-    Pure single-script IDNs (e.g. legitimate CJK/Arabic domains) return False.
+    Script-aware: a label mixing Latin characters (including accented
+    Latin such as u-umlaut) with another script (e.g. Cyrillic lookalikes
+    in 'paypa\u043b') is flagged. Pure single-script names — ASCII, accented
+    Latin (münchen.de), or legitimate non-Latin IDNs — return False.
+    Unencodable hostnames return True (invalid, treat as suspicious).
     """
     if not domain:
         return False
-    # Pure ASCII: cannot be a unicode homograph attack.
-    if all(ord(c) < 128 for c in domain):
-        return False
+    try:
+        domain.encode("idna")
+    except Exception:
+        return True
     for label in domain.lower().split("."):
-        has_latin = any("a" <= c <= "z" for c in label)
-        has_non_latin = any(ord(c) > 127 for c in label)
-        if has_latin and has_non_latin:
+        if not label or all(ord(c) < 128 for c in label):
+            continue
+        scripts = set()
+        for c in label:
+            if ord(c) < 128 or _is_latin_char(c):
+                scripts.add("latin")
+            else:
+                try:
+                    scripts.add(unicodedata.name(c).split()[0])
+                except ValueError:
+                    scripts.add("UNKNOWN")
+        if "latin" in scripts and len(scripts) > 1:
             return True
-        # All-non-latin label that IDNA-encodes to punycode alongside
-        # ASCII labels in the same domain is also suspicious (mixed labels).
-        if has_non_latin and not has_latin:
-            try:
-                label.encode("idna")
-                return True
-            except Exception:
-                return True
     return False
 
 

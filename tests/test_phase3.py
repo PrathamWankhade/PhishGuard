@@ -47,7 +47,7 @@ def test_detector_includes_new_evidence_channels():
         "ceo@company-support.xyz",
         reply_to="ceo@other.xyz",
     )
-    assert out["policy_version"] == "phase3-evidence-v2"
+    assert out["policy_version"] == "phase4-probability-v3"
     assert any("Reply-To" in s for s in out["signals"])
     assert any("Financial" in s or "fraud" in s for s in out["signals"])
 
@@ -72,6 +72,37 @@ def test_predict_rejects_oversized_body():
     big = "x" * 250_000
     r = client.post("/api/v1/predict", json={"email_text": big, "sender": "a@b.com"})
     assert r.status_code == 413
+
+
+def test_cors_preflight_allows_api_key_header():
+    from fastapi.testclient import TestClient
+    from backend.app.main import app
+
+    client = TestClient(app)
+    r = client.options(
+        "/api/v1/history",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "X-Api-Key",
+        },
+    )
+    assert r.status_code == 200
+    assert "x-api-key" in r.headers.get("access-control-allow-headers", "").lower()
+
+
+def test_history_gated_when_api_keys_configured(monkeypatch):
+    import os
+    from fastapi.testclient import TestClient
+
+    monkeypatch.setenv("API_KEYS", "secret-1")
+    # Re-read env at request time (middleware reads os.environ per request).
+    assert os.environ["API_KEYS"] == "secret-1"
+    from backend.app.main import app
+
+    client = TestClient(app)
+    assert client.get("/api/v1/history").status_code == 401
+    assert client.get("/api/v1/history", headers={"X-API-Key": "wrong"}).status_code == 403
 
 
 def test_explainer_import_safe_without_credentials(monkeypatch):

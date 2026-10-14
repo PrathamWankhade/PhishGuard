@@ -13,7 +13,6 @@ from sklearn.metrics import (
     precision_score, recall_score, f1_score, log_loss, brier_score_loss,
 )
 from sklearn.pipeline import Pipeline
-from sklearn.calibration import CalibratedClassifierCV
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

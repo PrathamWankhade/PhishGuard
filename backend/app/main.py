@@ -47,7 +47,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
 
@@ -101,22 +101,44 @@ def health():
 
 @app.get("/ready")
 def ready():
-    """Readiness: verify model artifacts exist and are loadable."""
+    """Readiness: model artifacts exist AND load successfully.
+
+    Returns 503 for missing, corrupt, or incompatible artifacts — never
+    imply readiness from file existence alone.
+    """
     from pathlib import Path
 
-    base = Path(__file__).resolve().parents[3]
+    # backend/app/main.py -> parents[2] is the repository root.
+    base = Path(__file__).resolve().parents[2]
     model_path = base / "trained_models" / "phishing_model.pkl"
     vectorizer_path = base / "trained_models" / "tfidf_vectorizer.pkl"
-    model_ok = model_path.exists() and vectorizer_path.exists()
-    status = "ready" if model_ok else "not_ready"
-    code = 200 if model_ok else 503
+    if not (model_path.exists() and vectorizer_path.exists()):
+        return JSONResponse(
+            status_code=503,
+            content={"status": "not_ready", "model_loaded": False, "reason": "artifacts missing"},
+        )
+    try:
+        import joblib
+
+        model = joblib.load(model_path)
+        vectorizer = joblib.load(vectorizer_path)
+        # Minimal compatibility: classifier with classes_ + transformable vectorizer.
+        assert hasattr(model, "predict") and hasattr(model, "classes_")
+        vectorizer.transform(["readiness probe"])
+        detail = {"model_classes": [str(c) for c in list(model.classes_)]}
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "not_ready", "model_loaded": False, "reason": f"artifact load failed: {e}"},
+        )
     return JSONResponse(
-        status_code=code,
+        status_code=200,
         content={
-            "status": status,
-            "model_loaded": model_ok,
+            "status": "ready",
+            "model_loaded": True,
             "model_path": str(model_path),
             "vectorizer_path": str(vectorizer_path),
+            **detail,
         },
     )
 

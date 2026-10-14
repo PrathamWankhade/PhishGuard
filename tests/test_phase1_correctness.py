@@ -21,6 +21,7 @@ def test_model_and_risk_fields_are_separate():
     )
     assert "model_prediction" in result
     assert "model_confidence" in result
+    assert "phishing_probability" in result
     assert "risk_score" in result
     assert "risk_level" in result
     assert "verdict" in result
@@ -28,11 +29,44 @@ def test_model_and_risk_fields_are_separate():
     # Legacy fields still present for UI compat.
     assert result["label"] == result["verdict"]
     assert result["prediction"] == result["model_prediction"]
-    # Risk score is a policy score, derived from model + heuristics.
-    assert result["risk_score"] >= result["model_confidence"]
+    # Risk is a policy score built from phishing probability + evidence,
+    # distinct from max-class confidence.
+    assert 0 <= result["phishing_probability"] <= 1
+    assert 0 <= result["risk_score"] <= 99
 
 
 @pytest.mark.model
+def test_confident_legitimate_is_not_phishing_by_score_alone():
+    """P0 regression: model P(legitimate)=0.96 must not yield a phishing verdict.
+
+    Mocks the classifier (no artifacts needed) and asserts the risk score
+    starts from the phishing-class probability, not max-class confidence.
+    """
+    from unittest.mock import patch as _patch
+
+    fake_prediction = {
+        "label": "Safe Email",
+        "prediction": "legitimate",
+        "confidence": 96.0,
+        "phishing_probability": 0.04,
+        "risk_level": "low",
+        "reasons": ["No strong phishing indicators found"],
+        "source": "ml-model",
+    }
+    with _patch(
+        "backend.app.services.phishing_detector.predict_email",
+        return_value=fake_prediction,
+    ):
+        result = detect_phishing(
+            "Hi team, please find the meeting notes attached. Best, John",
+            "john@company.com",
+        )
+    assert result["model_prediction"] == "legitimate"
+    assert result["phishing_probability"] == 0.04
+    assert result["risk_score"] < 45
+    assert result["verdict"] == "Safe Email"
+
+
 def test_contradictory_label_case_is_documented():
     # Legitimate-looking text with risky sender/URL must keep raw model class
     # visible even when the verdict differs by policy.
@@ -68,12 +102,16 @@ def test_trailing_punctuation_not_captured():
     assert result["urls"][0] == "https://example.xyz/login"
 
 
-def test_homograph_allows_legitimate_idn_without_mixed_script():
-    # Pure ASCII is never a homograph by itself.
+def test_homograph_mixed_script_flagged():
+    assert is_homograph("раураl.com")  # Cyrillic 'а' mixed with Latin 'l'
+    assert is_homograph("secure-раyраl.com")
+
+
+def test_homograph_legitimate_names_allowed():
     assert not is_homograph("paypal.com")
     assert not is_homograph("github.com")
-    # Mixed-script punycode label is flagged.
-    assert is_homograph("xn--pypal-4ve.com") or is_homograph("раураl.com") or True
+    assert not is_homograph("münchen.de")  # accented Latin, single script
+    assert not is_homograph("日本.jp")  # single non-Latin script IDN
 
 
 @pytest.mark.model
@@ -115,10 +153,23 @@ def test_ai_failure_preserves_deterministic_findings():
 
 
 def test_ready_endpoint_reflects_model_files():
+    from pathlib import Path
     from fastapi.testclient import TestClient
     from backend.app.main import app
 
     client = TestClient(app)
     resp = client.get("/ready")
-    assert resp.status_code in (200, 503)
-    assert "model_loaded" in resp.json()
+    data = resp.json()
+    assert "model_loaded" in data
+    artifacts = (
+        Path("trained_models/phishing_model.pkl").exists()
+        and Path("trained_models/tfidf_vectorizer.pkl").exists()
+    )
+    if artifacts:
+        # Artifacts present: readiness must actually verify them (would have
+        # caught the wrong-base-path bug that only checked existence).
+        assert resp.status_code == 200
+        assert data["model_loaded"] is True
+        assert "model_classes" in data
+    else:
+        assert resp.status_code == 503

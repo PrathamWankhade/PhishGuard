@@ -27,6 +27,7 @@ class PredictionResponse(BaseModel):
     prediction: str
     model_prediction: str
     model_confidence: float
+    phishing_probability: float = 0.0
     confidence: float
     risk_score: float
     risk_level: str

@@ -96,6 +96,10 @@ def predict_email(email_text: str, sender: str = "") -> dict:
 
     prediction = model.predict(vectorized)[0]
     probabilities = model.predict_proba(vectorized)[0]
+    classes = list(model.classes_)
+    # Phishing-class probability: the model's estimate that THIS email is
+    # phishing. Distinct from max-class confidence below.
+    phishing_probability = round(float(probabilities[classes.index("phishing")]), 4)
     confidence = round(max(probabilities) * 100, 2)
 
     if confidence >= 75:
@@ -112,6 +116,7 @@ def predict_email(email_text: str, sender: str = "") -> dict:
         "label": label,
         "prediction": prediction,
         "confidence": confidence,
+        "phishing_probability": phishing_probability,
         "risk_level": risk_level,
         "reasons": reasons,
         "source": "ml-model",

@@ -84,9 +84,12 @@ Email Input → MIME Parsing → Text Model ─┐
 3. **Analyzers** — URL (one record per URL, hostname normalized, IDNA-aware),
    sender domain, header authentication, BEC/fraud patterns. Each returns
    capped risk points plus evidence strings.
-4. **Decision engine** — `risk_score = model_confidence + url_risk (≤20) +
-   sender_risk (≤30) + evidence_risk (≤10)`, capped at 99. Thresholds:
-   ≥75 high (Phishing), ≥45 medium (Suspicious), else low (Safe).
+4. **Decision engine** — `risk_score = P(phishing)*100 + url_risk (≤20) +
+   sender_risk (≤30) + evidence_risk (≤10)`, capped at 99. Using the
+   phishing-class probability (not max-class confidence) means confident
+   legitimate mail contributes ~0, not ~96. Thresholds: ≥75 high
+   (Phishing), ≥45 medium (Suspicious), else low (Safe) — interim values
+   pending held-out validation.
 5. **Explanation** — Deterministic signals are the source of truth. The LLM
    may add a supplementary summary; on provider failure the local result is
    returned unchanged with `explanation_source: "deterministic"`.

@@ -39,6 +39,7 @@ Response (`200`, `status: "completed"`):
   "prediction": "phishing",
   "model_prediction": "phishing",
   "model_confidence": 88.4,
+  "phishing_probability": 0.884,
   "confidence": 96.4,
   "risk_score": 96.4,
   "risk_level": "high",
@@ -55,7 +56,9 @@ Response (`200`, `status: "completed"`):
 Field semantics:
 
 - `model_prediction` / `model_confidence` — raw classifier output. A binary
-  class (`phishing` / `legitimate`) and its probability. Never overwritten.
+  class (`phishing` / `legitimate`) and its max-class probability. Never overwritten.
+- `phishing_probability` — the model's estimated P(phishing) for this email
+  (0–1). This, not `model_confidence`, feeds the risk score.
 - `risk_score` — heuristic policy score (0–99). **Not a calibrated
   probability**; do not display it with probability language.
 - `confidence` — legacy alias of `risk_score`, kept for existing clients.

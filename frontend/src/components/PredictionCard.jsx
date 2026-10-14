@@ -61,19 +61,24 @@ export default function PredictionCard({ result }) {
           <p className="mt-0.5 text-sm text-text-secondary">ML-powered phishing detection analysis</p>
         </div>
         <div className="text-left sm:text-right">
-          <p className="text-xs font-medium text-text-disabled uppercase tracking-wider">Confidence</p>
-          <p className="text-3xl font-bold text-primary-500">{result.confidence}%</p>
+          <p className="text-xs font-medium text-text-disabled uppercase tracking-wider">Risk score</p>
+          <p className="text-3xl font-bold text-primary-500">{result.risk_score ?? result.confidence}%</p>
+          {result.phishing_probability != null && (
+            <p className="mt-1 text-xs text-text-disabled">
+              Model P(phishing): {(result.phishing_probability * 100).toFixed(1)}%
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Confidence Bar */}
+      {/* Risk Bar */}
       <div className="mb-5">
         <div className="mb-1.5 flex justify-between text-xs text-text-secondary">
-          <span>Detection Confidence</span>
-          <span>{result.confidence}%</span>
+          <span>Policy risk score (heuristic, not a probability)</span>
+          <span>{result.risk_score ?? result.confidence}%</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-surface-200">
-          <div className={`h-full rounded-full transition-all duration-700 ${style.bar}`} style={{ width: `${result.confidence}%` }} />
+          <div className={`h-full rounded-full transition-all duration-700 ${style.bar}`} style={{ width: `${result.risk_score ?? result.confidence}%` }} />
         </div>
       </div>
 
