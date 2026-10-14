@@ -42,4 +42,4 @@ jobs:
       - name: Build deterministic fixture model
         run: python scripts/build_ci_fixture_model.py
       - name: Inference-contract tests (fixture model)
-        run: python -m pytest tests/test_inference_contract.py -v
+        run: python -m pytest tests/test_inference_contract.py tests/test_adversarial_fixture.py -v

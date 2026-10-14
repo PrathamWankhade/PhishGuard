@@ -45,10 +45,10 @@ layered accordingly.
 
 | Control | Setting |
 |---|---|
-| Body cap | 200KB JSON (413); uploads 2MB with type allow-list |
+| Body cap | 200KB JSON + 2MB uploads at the app; `client_max_body_size 2m` at Nginx (set the same ceiling at every proxy/gateway — the app check alone cannot stop a slow spool) |
 | Field caps | 10k text, 500 sender/reply fields, 2k auth-results |
-| Rate limit | 60/min/IP on `/api/*`, bounded buckets (Redis/gateway for multi-worker) |
-| Provider call | 10s timeout, 1 retry, verdict-independent |
+| Rate limit | 60/min/IP general, 30/min/IP on predict+upload, bounded buckets (Redis/gateway REQUIRED for multi-worker — four workers quadruple the effective quota) |
+| Provider call | 10s timeout, 1 retry, verdict-independent; daily budget cap (`AI_DAILY_BUDGET`, default 500 submitted calls) + concurrency semaphore (4, non-blocking degrade); per-process counters — enforce provider-side budgets for multi-worker |
 | Upload parsing | 2MB raw cap, 50k body cap, never raises |
 
 ## Operational honesty

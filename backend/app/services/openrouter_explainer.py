@@ -15,16 +15,29 @@ AI_ENABLED = os.environ.get("AI_EXPLANATIONS_ENABLED", "true").lower() not in ("
 _ai_lock = threading.Lock()
 _ai_day = str(date.today())
 _ai_used_today = 0
-_ai_semaphore = threading.BoundedSemaphore(int(os.environ.get("AI_MAX_CONCURRENT", "4")))
+_ai_semaphore = None  # created lazily so import never validates config
+
+
+def _get_semaphore() -> threading.BoundedSemaphore:
+    global _ai_semaphore
+    if _ai_semaphore is None:
+        _ai_semaphore = threading.BoundedSemaphore(_semaphore_size())
+    return _ai_semaphore
 
 
 def _budget_allows() -> bool:
-    """Daily spending cap. Returns True and records usage, or False."""
+    """Daily spending cap on SUBMITTED provider calls. Returns True and
+    records usage, or False. Raises on misconfiguration (loud, never silent).
+    """
     global _ai_day, _ai_used_today
+    raw = os.environ.get("AI_DAILY_BUDGET", "500")
     try:
-        cap = int(os.environ.get("AI_DAILY_BUDGET", "500"))
+        cap = int(raw)
     except ValueError:
-        cap = 500
+        raise RuntimeError(f"Invalid AI_DAILY_BUDGET={raw!r}; expected a non-negative integer.")
+    if cap < 0:
+        raise RuntimeError(f"Invalid AI_DAILY_BUDGET={raw!r}; expected a non-negative integer.")
+    # cap == 0 is valid: zero paid calls allowed (hard local-only).
     today = str(date.today())
     with _ai_lock:
         if today != _ai_day:
@@ -33,6 +46,17 @@ def _budget_allows() -> bool:
             return False
         _ai_used_today += 1
         return True
+
+
+def _semaphore_size() -> int:
+    raw = os.environ.get("AI_MAX_CONCURRENT", "4")
+    try:
+        n = int(raw)
+    except ValueError:
+        raise RuntimeError(f"Invalid AI_MAX_CONCURRENT={raw!r}; expected a positive integer.")
+    if n <= 0:
+        raise RuntimeError(f"Invalid AI_MAX_CONCURRENT={raw!r}; expected a positive integer.")
+    return n
 
 # NOTE: the client is created lazily inside _get_client(), never at import
 # time. Constructing OpenAI() requires credentials, and importing this module
@@ -65,11 +89,14 @@ def generate_ai_explanation(email_text: str, sender: str, prediction: str, confi
     """
     if not AI_ENABLED or not os.getenv("OPENROUTER_API_KEY"):
         return None
-    if not _budget_allows():
-        return None  # daily provider budget exhausted: stay local-only
-    if not _ai_semaphore.acquire(blocking=False):
+    # Order: concurrency slot FIRST, budget reservation only for submitted
+    # calls. A saturated provider must not consume the daily budget.
+    sem = _get_semaphore()
+    if not sem.acquire(blocking=False):
         return None  # provider saturated: degrade, never queue unboundedly
     try:
+        if not _budget_allows():
+            return None  # daily provider budget exhausted: stay local-only
         client = _get_client()
         prompt = f"Prediction: {prediction}\nConfidence: {confidence}%\nSender: {sender}\n\nEmail:\n{email_text[:2000]}"
 
@@ -91,4 +118,4 @@ def generate_ai_explanation(email_text: str, sender: str, prediction: str, confi
         print("OpenRouter error:", error)
         return ["AI explanation unavailable."]
     finally:
-        _ai_semaphore.release()
+        sem.release()

@@ -143,16 +143,49 @@ def test_ai_saturated_semaphore_stays_local(monkeypatch):
 
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
     monkeypatch.setenv("AI_DAILY_BUDGET", "500")
+    sem = mod._get_semaphore()
     for _ in range(8):
-        mod._ai_semaphore.acquire(blocking=False)
+        sem.acquire(blocking=False)
     try:
         assert mod.generate_ai_explanation("hi", "a@b.com", "Safe Email", 10) is None
     finally:
         for _ in range(8):
             try:
-                mod._ai_semaphore.release()
+                sem.release()
             except ValueError:
                 pass
+
+
+def test_saturated_provider_consumes_no_budget(monkeypatch):
+    import backend.app.services.openrouter_explainer as mod
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    monkeypatch.setenv("AI_DAILY_BUDGET", "500")
+    sem = mod._get_semaphore()
+    for _ in range(8):
+        sem.acquire(blocking=False)
+    before = mod._ai_used_today
+    try:
+        mod.generate_ai_explanation("hi", "a@b.com", "Safe Email", 10)
+    finally:
+        for _ in range(8):
+            try:
+                sem.release()
+            except ValueError:
+                pass
+    assert mod._ai_used_today == before
+
+
+def test_invalid_ai_config_raises(monkeypatch):
+    import pytest as _pytest
+    import backend.app.services.openrouter_explainer as mod
+
+    monkeypatch.setenv("AI_DAILY_BUDGET", "lots")
+    with _pytest.raises(RuntimeError):
+        mod._budget_allows()
+    monkeypatch.setenv("AI_MAX_CONCURRENT", "0")
+    with _pytest.raises(RuntimeError):
+        mod._semaphore_size()
 
 
 def test_explainer_import_safe_without_credentials(monkeypatch):

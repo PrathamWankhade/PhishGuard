@@ -27,7 +27,9 @@ class PredictionResponse(BaseModel):
     prediction: str
     model_prediction: str
     model_confidence: float
-    phishing_probability: float = 0.0
+    # Required (no default): a missing phishing probability must fail
+    # validation, never masquerade as a valid zero.
+    phishing_probability: float
     confidence: float
     risk_score: float
     risk_level: str
@@ -59,6 +61,10 @@ def predict_email(request: PredictionRequest):
     if not safe_text.strip():
         raise HTTPException(status_code=422, detail="email_text must not be empty.")
 
+    # NOTE: auth evidence from this public endpoint is ALWAYS untrusted
+    # (caller-supplied, forgeable). There is deliberately no request field
+    # that lets a client mark its own headers trusted — trusted results only
+    # come from receiving infrastructure (see auth_analyzer TRUST BOUNDARY).
     result = detect_phishing(safe_text, safe_sender, safe_reply, safe_bounce, safe_auth)
 
     # Deterministic findings are the source of truth and are never replaced.
@@ -78,8 +84,10 @@ def predict_email(request: PredictionRequest):
     result["reasons"] = deterministic_reasons
     result["status"] = "completed"
 
-    email_hash = hashlib.md5(
-        (safe_text.strip().lower() + safe_sender.strip().lower()).encode()
+    # Structured SHA-256 dedup key with explicit field boundaries
+    # (v1 namespace + NUL separators), so sender/text mixes cannot collide.
+    email_hash = hashlib.sha256(
+        ("v1\0" + safe_text.strip().lower() + "\0" + safe_sender.strip().lower()).encode()
     ).hexdigest()
 
     result["email_hash"] = email_hash

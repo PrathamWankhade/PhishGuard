@@ -16,8 +16,8 @@ const HISTORY_API = import.meta.env.VITE_API_BASE_URL
 
 const FALLBACK_DATA = {
   total_scans: 12847, phishing_count: 3421, safe_count: 8156, suspicious_count: 1270,
-  avg_confidence: 94.7, risk_levels: { high: 1892, medium: 2150, low: 8805 },
-  trend: { scans: 12, phishing: -3, safe: 8, confidence: 1.2 },
+  avg_risk_score: 94.7, risk_levels: { high: 1892, medium: 2150, low: 8805 },
+  trend: { scans: 12, phishing: -3, safe: 8, risk_score: 1.2 },
   daily_trend: [
     { day: 'Mon', scans: 42, threats: 12 }, { day: 'Tue', scans: 58, threats: 18 },
     { day: 'Wed', scans: 35, threats: 9 }, { day: 'Thu', scans: 71, threats: 22 },
@@ -243,7 +243,7 @@ export default function Dashboard() {
         <StatCard icon="danger" title="Phishing Detected" value={data.phishing_count} trend={trend.phishing} color="danger" visible={dataVisible} />
         <StatCard icon="check" title="Safe Emails" value={data.safe_count} trend={trend.safe} color="safe" visible={dataVisible} />
         <StatCard icon="warning" title="Suspicious" value={data.suspicious_count || 0} color="warning" visible={dataVisible} />
-        <StatCard icon="analytics" title="Avg Risk Score" value={data.avg_risk_score ?? data.avg_confidence} suffix="%" trend={trend.confidence} color="primary" visible={dataVisible} />
+        <StatCard icon="analytics" title="Avg Risk Score" value={data.avg_risk_score} suffix="%" trend={trend.risk_score} color="primary" visible={dataVisible} />
         <StatCard icon="report" title="High Risk Alerts" value={data.risk_levels?.high || 0} color="danger" visible={dataVisible} />
       </div>
 

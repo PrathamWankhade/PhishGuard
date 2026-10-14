@@ -79,12 +79,18 @@ def _evaluate_readiness() -> tuple[bool, dict]:
         vectorizer = joblib.load(vectorizer_path)
         # Full inference contract (what production scoring actually needs):
         # predict + predict_proba, a phishing class, and a valid probability.
-        assert hasattr(model, "predict") and hasattr(model, "predict_proba")
+        # Explicit checks — never assert (stripped under python -O).
+        if not hasattr(model, "predict"):
+            raise RuntimeError("Model lacks predict()")
+        if not hasattr(model, "predict_proba"):
+            raise RuntimeError("Model lacks predict_proba()")
         classes = [str(c) for c in list(model.classes_)]
-        assert "phishing" in classes, f"model classes {classes} lack 'phishing'"
+        if "phishing" not in classes:
+            raise RuntimeError(f"Model classes {classes} lack 'phishing'")
         proba = model.predict_proba(vectorizer.transform(["readiness probe"]))
         p = float(proba[0][classes.index("phishing")])
-        assert 0.0 <= p <= 1.0, f"phishing probability out of range: {p}"
+        if not 0.0 <= p <= 1.0:
+            raise RuntimeError(f"Phishing probability out of range: {p}")
         return True, {"model_classes": classes}
     except Exception as e:
         return False, {"reason": f"artifact load failed: {e}"}

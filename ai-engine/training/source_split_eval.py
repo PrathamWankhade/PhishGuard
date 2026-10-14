@@ -81,17 +81,25 @@ def choose_holdout(df: pd.DataFrame) -> tuple[list, list]:
     return train, sorted(hold)
 
 
-def enforce_group_disjointness(train_df: pd.DataFrame, test_df: pd.DataFrame) -> pd.DataFrame:
-    """Drop train rows whose duplicate-group also appears in the holdout, so
-    identical texts collected from multiple sources cannot leak across."""
+def enforce_group_disjointness(train_df: pd.DataFrame, test_df: pd.DataFrame) -> tuple[pd.DataFrame, bool]:
+    """Drop train rows whose duplicate-group also appears in the holdout.
+
+    Returns (filtered_train, verified). verified is False when the check was
+    impossible (no group_id column) — callers must NOT report success then.
+    """
     if "group_id" not in train_df.columns or "group_id" not in test_df.columns:
-        print("WARNING: no group_id column; group-disjointness not enforced.")
-        return train_df
+        return train_df, False
     leaked = set(train_df["group_id"]) & set(test_df["group_id"])
     if leaked:
         print(f"Dropping {len(leaked)} duplicate groups from train (present in holdout).")
         train_df = train_df[~train_df["group_id"].isin(leaked)]
-    return train_df
+    return train_df, True
+
+
+def check_binary(df: pd.DataFrame, name: str) -> None:
+    labels = set(df["label"].unique())
+    if labels != {"legitimate", "phishing"}:
+        raise ValueError(f"{name} lacks both classes: {sorted(labels)} (n={len(df)})")
 
 
 def main() -> None:
@@ -107,7 +115,16 @@ def main() -> None:
 
     train_df = df[df["source"].isin(train_sources)]
     test_df = df[df["source"].isin(hold_sources)]
-    train_df = enforce_group_disjointness(train_df, test_df)
+    train_df, group_verified = enforce_group_disjointness(train_df, test_df)
+    if not group_verified:
+        raise SystemExit(
+            "INCONCLUSIVE: no group_id column — duplicate-group separation "
+            "cannot be verified. Rebuild the dataset with build_final_dataset.py."
+        )
+    check_binary(train_df, "train set")
+    check_binary(test_df, "holdout set")
+    assert set(train_df["group_id"]).isdisjoint(set(test_df["group_id"])), \
+        "group leakage: train and holdout share duplicate groups"
     print(f"Train rows: {len(train_df)}, held-out rows: {len(test_df)}")
     print(f"Train class balance: {train_df['label'].value_counts().to_dict()}")
     print(f"Holdout class balance: {test_df['label'].value_counts().to_dict()}")
@@ -136,7 +153,7 @@ def main() -> None:
         "held_out_sources": hold_sources,
         "train_class_counts": {k: int(v) for k, v in train_df["label"].value_counts().items()},
         "holdout_class_counts": {k: int(v) for k, v in test_df["label"].value_counts().items()},
-        "group_disjoint": True,
+        "group_disjoint": bool(group_verified),
         "note": "Holdout is untouched by threshold selection; re-validate policy thresholds here, do not tune them here.",
         "metrics": metrics_for(test_df["label"], pipeline.predict(test_df["email_text"]), proba),
     }
