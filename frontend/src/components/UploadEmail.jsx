@@ -4,8 +4,16 @@ const UPLOAD_API = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/upload`
   : 'http://127.0.0.1:8000/api/v1/upload';
 
-export default function UploadEmail({ onLoad, onSenderLoad }) {
+export default function UploadEmail({ onLoad, onSenderLoad, onHeadersLoad }) {
   const [notice, setNotice] = useState(null);
+
+  function emitHeaders(parsed) {
+    onHeadersLoad?.({
+      reply_to: parsed?.reply_to || '',
+      return_path: parsed?.return_path || '',
+      auth_results: '',
+    });
+  }
 
   async function handleUpload(event) {
     const file = event.target.files?.[0];
@@ -30,6 +38,8 @@ export default function UploadEmail({ onLoad, onSenderLoad }) {
         const body = parsed.subject ? `Subject: ${parsed.subject}\n\n${parsed.body}` : parsed.body;
         onSenderLoad?.(parsed.sender || '');
         onLoad(body || '');
+        emitHeaders(parsed);
+        if (parsed.errors?.length) setNotice(`Parsed with warnings: ${parsed.errors.join('; ')}`);
         if (parsed.errors?.length) setNotice(`Parsed with warnings: ${parsed.errors.join('; ')}`);
         return;
       }
@@ -54,6 +64,7 @@ export default function UploadEmail({ onLoad, onSenderLoad }) {
 
     onSenderLoad?.(extractedSender);
     onLoad(extractedBody);
+    emitHeaders(null);
   }
 
   return (

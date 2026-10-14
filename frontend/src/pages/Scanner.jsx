@@ -11,9 +11,12 @@ const SAMPLE_SENDER = 'support@sbi-security-alert.xyz';
 export default function Scanner() {
   const [emailText, setEmailText] = useState('');
   const [sender, setSender] = useState('');
+  const [headers, setHeaders] = useState({ reply_to: '', return_path: '', auth_results: '' });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const hasHeaderEvidence = headers.reply_to || headers.return_path || headers.auth_results;
 
   async function handleScan(e) {
     e.preventDefault();
@@ -25,7 +28,7 @@ export default function Scanner() {
         setLoading(false);
         return;
       }
-      const prediction = await scanEmail({ email_text: emailText, sender });
+      const prediction = await scanEmail({ email_text: emailText, sender, ...headers });
       setResult(prediction);
     } catch (err) {
       setResult(null);
@@ -38,6 +41,7 @@ export default function Scanner() {
   function loadSample() {
     setEmailText(SAMPLE_EMAIL);
     setSender(SAMPLE_SENDER);
+    setHeaders({ reply_to: '', return_path: '', auth_results: '' });
     setResult(null);
     setError(null);
   }
@@ -56,7 +60,7 @@ export default function Scanner() {
 
         <div className="grid gap-10 lg:grid-cols-[1fr_0.95fr]">
           <div className="space-y-4">
-            <UploadEmail onLoad={setEmailText} onSenderLoad={setSender} />
+            <UploadEmail onLoad={setEmailText} onSenderLoad={setSender} onHeadersLoad={setHeaders} />
             <button
               onClick={loadSample}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-300 bg-white px-4 py-3 text-sm font-medium text-text-secondary shadow-card transition hover:shadow-card-hover sm:w-auto sm:px-5"
@@ -64,6 +68,33 @@ export default function Scanner() {
               <Icon name="download" size={16} />
               Load Sample Email
             </button>
+            <details className="rounded-xl border border-surface-300 bg-white px-4 py-3 shadow-card">
+              <summary className="cursor-pointer text-sm font-medium text-text-secondary">
+                Advanced: authentication headers
+                {hasHeaderEvidence ? ' (evidence attached)' : ' (optional)'}
+              </summary>
+              <div className="mt-3 space-y-2">
+                {[
+                  ['reply_to', 'Reply-To'],
+                  ['return_path', 'Return-Path'],
+                  ['auth_results', 'Authentication-Results'],
+                ].map(([key, label]) => (
+                  <label key={key} className="block">
+                    <span className="text-xs font-medium text-text-disabled">{label}</span>
+                    <input
+                      type="text"
+                      value={headers[key]}
+                      onChange={(ev) => setHeaders((h) => ({ ...h, [key]: ev.target.value }))}
+                      placeholder={label}
+                      className="mt-1 block w-full rounded-lg border border-surface-300 bg-surface-50 px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:border-primary-500 focus:outline-none"
+                    />
+                  </label>
+                ))}
+                <p className="text-xs text-text-disabled">
+                  Reply-To / Return-Path mismatches and SPF/DKIM/DMARC results strengthen the verdict. Auto-filled on .eml upload.
+                </p>
+              </div>
+            </details>
           </div>
           <div className="grid gap-6">
             <EmailInput

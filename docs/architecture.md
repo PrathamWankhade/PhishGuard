@@ -8,21 +8,19 @@ engine, and a SQLite persistence layer. Everything runs from one repository
 and ships as two containers (API + SPA behind Nginx).
 
 ```
-                    ┌─────────────────────────────┐
-                    │        React SPA (Vite)     │
-                    │ Scanner · Dashboard · Upload│
-                    └──────────────┬──────────────┘
-                                   │ REST /api/v1 (+ X-API-Key)
-                    ┌──────────────▼──────────────┐
-                    │      FastAPI backend        │
-                    │ routes → services → engine  │
-                    └──┬──────────┬───────────┬───┘
-                       │          │           │
-              ┌────────▼──┐ ┌─────▼──────┐ ┌──▼────────┐
-              │ ai-engine │ │  analyzers │ │  SQLite   │
-              │ TF-IDF +  │ │ URL/sender │ │ history + │
-              │ ensemble  │ │ auth / BEC │ │ feedback  │
-              └───────────┘ └────────────┘ └───────────┘
+React SPA ──REST /api/v1 (+ X-API-Key)──► FastAPI backend
+                                              ├── routes → services → engine
+                                              ├── ai-engine (TF-IDF + ensemble)
+                                              ├── analyzers (URL / sender / auth / BEC)
+                                              └── SQLite (history + feedback)
+```
+
+```mermaid
+flowchart TB
+    SPA[React SPA] -->|REST /api/v1| API[FastAPI backend]
+    API --> ENG[ai-engine: TF-IDF + ensemble]
+    API --> ANZ[analyzers: URL / sender / auth / BEC]
+    API --> DB[(SQLite: history + feedback)]
 ```
 
 ## The core design principle
@@ -75,6 +73,21 @@ Email Input → MIME Parsing → Text Model ─┐
                            → BEC Signals ─┘   Deterministic Signals
                                                     ↓ (+ optional AI summary)
                                               Persist → Dashboard
+```
+
+```mermaid
+flowchart LR
+    A[Email input] --> B[MIME parsing]
+    B --> C[Text model: P-phishing]
+    B --> D[URL analyzer]
+    B --> E[Sender + auth analyzer]
+    B --> F[BEC signals]
+    C --> G{Decision engine}
+    D --> G
+    E --> G
+    F --> G
+    G --> H[Verdict + risk + signals]
+    H --> I[(Persist)]
 ```
 
 1. **Input** — Pasted text (`POST /predict`) or `.eml` upload

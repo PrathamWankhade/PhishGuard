@@ -19,10 +19,11 @@ Scanner page → POST /api/v1/predict { email_text, sender, ... }
 
 ```
 UploadEmail → POST /api/v1/upload (multipart file)
-  → type check (.eml/.txt/.msg) → 2MB cap → parse_raw_email()
+  → type check (.eml/.txt) → 2MB cap → parse_raw_email()
   → { sender, subject, reply_to, return_path, body, urls, attachments, errors }
-  → fields pre-fill the scanner → user presses Scan → flow 1
-      (header fields forwarded as reply_to / return_path evidence)
+  → sender/body pre-fill the scanner; reply_to/return_path flow into the
+    scan as header evidence (also editable under Advanced headers)
+  → user presses Scan → flow 1
 ```
 
 - If the backend parser is unreachable, the component falls back to raw-text
