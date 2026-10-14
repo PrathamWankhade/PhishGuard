@@ -1,4 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+const API_KEY = import.meta.env.VITE_API_KEY || '';
+
+function authHeaders(extra = {}) {
+  return API_KEY ? { ...extra, 'X-API-Key': API_KEY } : extra;
+}
 
 const suspiciousTerms = [
   'urgent', 'verify', 'password', 'otp', 'bank', 'suspended',
@@ -49,13 +54,16 @@ export async function scanEmail(payload) {
   const requestBody = {
     email_text: payload.email_text || '',
     sender: payload.sender || '',
+    reply_to: payload.reply_to || '',
+    return_path: payload.return_path || '',
+    auth_results: payload.auth_results || '',
   };
 
   let response;
   try {
     response = await fetch(`${API_BASE_URL}/predict`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(requestBody),
     });
   } catch (error) {

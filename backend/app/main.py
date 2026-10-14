@@ -17,6 +17,8 @@ rate_limit_store = defaultdict(list)
 RATE_LIMIT = 60
 RATE_LIMIT_WINDOW = 60
 MAX_TRACKED_CLIENTS = 5000
+# Reject oversized request bodies before parsing (upload route has its own 2MB file cap).
+MAX_BODY_BYTES = 200_000
 
 
 @asynccontextmanager
@@ -47,6 +49,17 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+
+@app.middleware("http")
+async def size_limit_middleware(request: Request, call_next):
+    if request.method in ("POST", "PUT") and request.url.path.startswith("/api/"):
+        clen = request.headers.get("content-length")
+        if clen and clen.isdigit() and int(clen) > MAX_BODY_BYTES:
+            # Upload route accepts up to 2MB files; let it enforce its own cap.
+            if not request.url.path.startswith("/api/v1/upload"):
+                return JSONResponse(status_code=413, content={"detail": "Request body too large."})
+    return await call_next(request)
 
 
 @app.middleware("http")

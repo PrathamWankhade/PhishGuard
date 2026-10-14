@@ -9,9 +9,11 @@ from inference.predict import predict_email
 from backend.app.services.explanation_engine import build_explanations
 from backend.app.services.sender_analyzer import analyze_sender
 from backend.app.services.url_analyzer import analyze_urls
+from backend.app.services.auth_analyzer import analyze_auth
+from backend.app.services.bec_analyzer import analyze_bec
 
 
-VERDICT_POLICY_VERSION = "phase1-explicit-v1"
+VERDICT_POLICY_VERSION = "phase3-evidence-v2"
 
 # Documented decision policy: risk_score is a heuristic policy score (0-100),
 # NOT a calibrated probability. Thresholds below were chosen for Phase 1
@@ -38,10 +40,18 @@ def verdict_for_risk(risk_level: str) -> str:
     )
 
 
-def detect_phishing(email_text: str, sender: str = "") -> dict:
+def detect_phishing(
+    email_text: str,
+    sender: str = "",
+    reply_to: str = "",
+    return_path: str = "",
+    auth_results: str = "",
+) -> dict:
     prediction = predict_email(email_text, sender)
     url_analysis = analyze_urls(email_text)
     sender_analysis = analyze_sender(sender)
+    auth_analysis = analyze_auth(sender, reply_to, return_path, auth_results)
+    bec_analysis = analyze_bec(email_text, sender)
 
     # Raw model output — never overwritten by heuristics.
     model_prediction = prediction["prediction"]
@@ -51,10 +61,19 @@ def detect_phishing(email_text: str, sender: str = "") -> dict:
     suspicious_count = url_analysis.get("suspicious_count", len(url_analysis.get("suspicious_urls", [])))
     url_risk = min(20, suspicious_count * 4)
     sender_risk = sender_analysis["risk"]
-    risk_score = min(99, model_confidence + url_risk + sender_risk)
+    # New evidence channels are bounded so they can tip borderline cases but
+    # never fabricate certainty on their own.
+    evidence_risk = min(10, auth_analysis["risk"] + bec_analysis["risk"])
+    risk_score = min(99, model_confidence + url_risk + sender_risk + evidence_risk)
 
     risk_level = classify_risk(risk_score)
     label = verdict_for_risk(risk_level)
+
+    signals = (
+        build_explanations(prediction, url_analysis, sender_analysis)
+        + auth_analysis.get("reasons", [])
+        + bec_analysis.get("reasons", [])
+    )
 
     result = {
         # Final verdict under the documented policy.
@@ -71,8 +90,8 @@ def detect_phishing(email_text: str, sender: str = "") -> dict:
         # risk score, not the model probability. New clients should use
         # model_confidence / risk_score.
         "confidence": risk_score,
-        "signals": build_explanations(prediction, url_analysis, sender_analysis),
-        "reasons": build_explanations(prediction, url_analysis, sender_analysis),
+        "signals": signals,
+        "reasons": signals,
         "source": "backend-ai-engine",
         "policy_version": VERDICT_POLICY_VERSION,
     }

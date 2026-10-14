@@ -144,9 +144,11 @@ export default function Dashboard() {
       try {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 4000);
+        const apiKey = import.meta.env.VITE_API_KEY || '';
+        const headers = apiKey ? { 'X-API-Key': apiKey } : {};
         const [dr, hr] = await Promise.all([
-          fetch(DASHBOARD_API, { signal: controller.signal }),
-          fetch(HISTORY_API, { signal: controller.signal }),
+          fetch(DASHBOARD_API, { signal: controller.signal, headers }),
+          fetch(HISTORY_API, { signal: controller.signal, headers }),
         ]);
         clearTimeout(timer);
         if (!dr.ok || !hr.ok) throw new Error();

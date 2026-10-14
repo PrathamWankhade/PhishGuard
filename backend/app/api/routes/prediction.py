@@ -15,6 +15,9 @@ router = APIRouter()
 class PredictionRequest(BaseModel):
     email_text: str
     sender: str = ""
+    reply_to: str = ""
+    return_path: str = ""
+    auth_results: str = ""
 
 
 class PredictionResponse(BaseModel):
@@ -48,11 +51,14 @@ def predict_email(request: PredictionRequest):
 
     safe_text = sanitize_text(request.email_text)
     safe_sender = sanitize_text(request.sender)[:500]
+    safe_reply = sanitize_text(request.reply_to)[:500]
+    safe_bounce = sanitize_text(request.return_path)[:500]
+    safe_auth = sanitize_text(request.auth_results)[:2000]
 
     if not safe_text.strip():
         raise HTTPException(status_code=422, detail="email_text must not be empty.")
 
-    result = detect_phishing(safe_text, safe_sender)
+    result = detect_phishing(safe_text, safe_sender, safe_reply, safe_bounce, safe_auth)
 
     # Deterministic findings are the source of truth and are never replaced.
     deterministic_reasons: list = list(result.get("reasons", []))

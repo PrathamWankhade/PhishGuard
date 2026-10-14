@@ -1,11 +1,12 @@
 import json
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from backend.app.database.models import get_scan_history
+from backend.app.middleware.auth import require_api_key
 
 router = APIRouter()
 
 
-@router.get("/history")
+@router.get("/history", dependencies=[Depends(require_api_key)])
 def get_history():
     results = get_scan_history()
     return [
