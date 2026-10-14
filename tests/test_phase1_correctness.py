@@ -67,6 +67,7 @@ def test_confident_legitimate_is_not_phishing_by_score_alone():
     assert result["verdict"] == "Safe Email"
 
 
+@pytest.mark.model
 def test_contradictory_label_case_is_documented():
     # Legitimate-looking text with risky sender/URL must keep raw model class
     # visible even when the verdict differs by policy.
