@@ -113,6 +113,16 @@ export default function PredictionCard({ result }) {
         </div>
       )}
 
+      {/* Recommended next step — static guidance per risk level, not findings */}
+      <div className="mb-5 rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
+        <h3 className="mb-1 text-sm font-bold uppercase tracking-wider text-text-secondary">Recommended next step</h3>
+        <p className="text-sm leading-5 text-text-primary">
+          {result.risk_level === 'high' && 'Do not click links or share credentials. Verify the sender through a trusted channel and report this message to your security team.'}
+          {result.risk_level === 'medium' && 'Treat links and attachments with caution. Verify unexpected requests through a separate channel before acting.'}
+          {(!result.risk_level || result.risk_level === 'low') && 'No strong threat indicators. Still apply normal caution to unexpected messages.'}
+        </p>
+      </div>
+
       {/* Reasons */}
       <div>
         <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-text-secondary">Evidence signals</h3>

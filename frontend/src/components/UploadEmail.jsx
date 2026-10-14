@@ -79,7 +79,13 @@ export default function UploadEmail({ onLoad, onSenderLoad, onHeadersLoad }) {
         className="mt-3 block w-full cursor-pointer rounded-lg border border-surface-300 bg-surface-50 px-4 py-3 text-sm text-text-secondary file:mr-4 file:rounded-lg file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-500 hover:file:bg-primary-100"
       />
       {notice && (
-        <p className="mt-2 text-xs font-medium text-suspicious-700">{notice}</p>
+        <div
+          role="alert"
+          className="mt-3 rounded-xl border border-suspicious-500/40 bg-suspicious-50 px-4 py-3"
+        >
+          <p className="text-sm font-bold text-suspicious-700">Check before scanning</p>
+          <p className="mt-0.5 text-xs leading-5 text-suspicious-700">{notice}</p>
+        </div>
       )}
     </div>
   );

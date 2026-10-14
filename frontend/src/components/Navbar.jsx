@@ -10,7 +10,7 @@ const links = [
   { to: '/', label: 'Home', icon: 'shield' },
   { to: '/scanner', label: 'Scanner', icon: 'scan' },
   { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { to: '/analytics', label: 'Analytics', icon: 'analytics' },
+  { to: '/analytics', label: 'Threat Signals', icon: 'analytics' },
   { to: '/contact', label: 'Contact', icon: 'contact' },
 ];
 

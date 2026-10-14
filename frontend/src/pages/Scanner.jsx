@@ -3,6 +3,7 @@ import Icon from '../components/Icon.jsx';
 import EmailInput from '../components/EmailInput.jsx';
 import PredictionCard from '../components/PredictionCard.jsx';
 import UploadEmail from '../components/UploadEmail.jsx';
+import { SkeletonCard } from '../components/Skeleton.jsx';
 import { scanEmail } from '../services/api.js';
 
 const SAMPLE_EMAIL = 'URGENT! Your online banking account will be suspended immediately. Click https://secure-bank-login.verify-now.example to verify your password and OTP.';
@@ -60,6 +61,7 @@ export default function Scanner() {
 
         <div className="grid gap-10 lg:grid-cols-[1fr_0.95fr]">
           <div className="space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary">1 — Provide the email</h2>
             <UploadEmail onLoad={setEmailText} onSenderLoad={setSender} onHeadersLoad={setHeaders} />
             <button
               onClick={loadSample}
@@ -75,10 +77,10 @@ export default function Scanner() {
               </summary>
               <div className="mt-3 space-y-2">
                 {[
-                  ['reply_to', 'Reply-To'],
-                  ['return_path', 'Return-Path'],
-                  ['auth_results', 'Authentication-Results'],
-                ].map(([key, label]) => (
+                  ['reply_to', 'Reply-To', 'Where replies go. A mismatch with the sender domain is a spoofing signal.'],
+                  ['return_path', 'Return-Path', 'Where bounces go. A mismatch with the sender domain is a spoofing signal.'],
+                  ['auth_results', 'Authentication-Results', 'Paste a received SPF/DKIM/DMARC line if you have one.'],
+                ].map(([key, label, help]) => (
                   <label key={key} className="block">
                     <span className="text-xs font-medium text-text-disabled">{label}</span>
                     <input
@@ -86,17 +88,20 @@ export default function Scanner() {
                       value={headers[key]}
                       onChange={(ev) => setHeaders((h) => ({ ...h, [key]: ev.target.value }))}
                       placeholder={label}
+                      aria-label={label}
                       className="mt-1 block w-full rounded-lg border border-surface-300 bg-surface-50 px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:border-primary-500 focus:outline-none"
                     />
+                    <span className="mt-0.5 block text-xs text-text-disabled">{help}</span>
                   </label>
                 ))}
-                <p className="text-xs text-text-disabled">
-                  Reply-To / Return-Path mismatches and SPF/DKIM/DMARC results strengthen the verdict. Auto-filled on .eml upload.
+                <p className="text-xs font-medium text-suspicious-700">
+                  Supplied headers are treated as unverified claims — never as proof of authentication. Auto-filled on .eml upload.
                 </p>
               </div>
             </details>
           </div>
           <div className="grid gap-6">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary">2 — Scan and review</h2>
             <EmailInput
               value={emailText}
               sender={sender}
@@ -110,7 +115,14 @@ export default function Scanner() {
                 {error}
               </div>
             )}
-            <PredictionCard result={result} />
+            {loading ? (
+              <div role="status" aria-label="Scanning email">
+                <SkeletonCard />
+                <p className="mt-2 text-center text-xs text-text-disabled">Analyzing… results appear here without moving the page.</p>
+              </div>
+            ) : (
+              <PredictionCard result={result} />
+            )}
           </div>
         </div>
       </section>

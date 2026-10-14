@@ -118,6 +118,7 @@ export default function Dashboard() {
   const [filterRisk, setFilterRisk] = useState('all');
   const [sortKey, setSortKey] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
+  const [expandedId, setExpandedId] = useState(null);
 
   const { search: urlSearch } = useLocation();
   useEffect(() => {
@@ -235,6 +236,14 @@ export default function Dashboard() {
         <p className="mt-1 text-sm text-text-secondary">
           Monitor phishing detections, scan history, confidence scores, and system performance powered by machine learning.
         </p>
+        {!isLive && (
+          <div role="status" className="mt-3 rounded-xl border border-suspicious-500/40 bg-suspicious-50 px-4 py-3">
+            <p className="text-sm font-bold text-suspicious-700">Demo data shown below</p>
+            <p className="mt-0.5 text-xs leading-5 text-suspicious-700">
+              The API is unreachable, so every metric, chart, and history row on this page is illustrative sample data — not live results. Start the backend to see real scans.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Stat Cards */}
@@ -402,8 +411,12 @@ export default function Dashboard() {
                   const isPhishing = item.prediction === 'Phishing Email' || item.prediction === 'phishing';
                   const isSuspicious = item.prediction === 'Suspicious Email';
                   const rescanned = item.scan_count > 1;
+                  const rowKey = item.id ?? `row-${i}`;
+                  const expanded = expandedId === rowKey;
+                  const reasons = Array.isArray(item.reasons) ? item.reasons : [];
                   return (
-                    <tr key={item.id || i} className="animate-slide-up border-b border-surface-100 text-text-primary anim-fast hover:bg-surface-50" style={{ animationDelay: `${i * 30}ms` }}>
+                    <React.Fragment key={rowKey}>
+                    <tr onClick={() => setExpandedId(expanded ? null : rowKey)} className="animate-slide-up cursor-pointer border-b border-surface-100 text-text-primary anim-fast hover:bg-surface-50" style={{ animationDelay: `${i * 30}ms` }} title="Click to inspect evidence">
                       <td className="max-w-[180px] truncate px-5 py-3.5 text-text-secondary">
                         <div className="flex items-center gap-2">
                           <span className="truncate">{item.sender || 'Unknown'}</span>
@@ -427,6 +440,21 @@ export default function Dashboard() {
                       </td>
                       <td className="px-5 py-3.5 text-text-disabled">{item.created_at || '\u2014'}</td>
                     </tr>
+                    {expanded && (
+                      <tr className="border-b border-surface-100 bg-surface-50">
+                        <td colSpan={5} className="px-5 py-3">
+                          <p className="mb-1 text-xs font-bold uppercase tracking-wider text-text-disabled">Evidence</p>
+                          {reasons.length ? (
+                            <ul className="list-disc space-y-1 pl-5 text-sm text-text-primary">
+                              {reasons.map((r, j) => <li key={j}>{r}</li>)}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-text-disabled">No recorded evidence for this scan.</p>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
