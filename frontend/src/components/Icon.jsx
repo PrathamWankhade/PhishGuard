@@ -1,213 +1,318 @@
 import React from 'react';
 
+/*
+ * Professional, consistent icon system for PhishGuard.
+ *
+ * Design rules:
+ * - All icons use viewBox="0 0 24 24"
+ * - Primary style: stroke="currentColor", strokeWidth="2", strokeLinecap="round", strokeLinejoin="round"
+ * - No mixed fill+stroke on the same shape (avoids muddy overlap)
+ * - Fill only used for solid accent dots / badges
+ * - Geometric paths centered and balanced in the 24x24 grid
+ */
 const icons = {
   shield: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 2L3 7v6c0 5.25 9 9 9 9s9-3.75 9-9V7l-9-5z" fill="currentColor" opacity="0.15" />
-      <path d="M12 2L3 7v6c0 5.25 9 9 9 9s9-3.75 9-9V7l-9-5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M12 2l-7 5v5c0 4.71 6.43 8 7 8s7-3.29 7-8V7l-7-5z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   scan: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M20 20l-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="11" cy="11" r="3" fill="currentColor" opacity="0.15" />
-      <path d="M11 8v6M8 11h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M21 21l-4.343-4.343a1 1 0 0 0-1.314 0L11 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="11" cy="11" r="1" fill="currentColor" />
+      <path d="M11 8v6M8 11h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
+
   dashboard: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="13" y="3" width="8" height="4" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="13" y="9" width="8" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
     </svg>
   ),
+
   analytics: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M4 20h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M6 16l4-6 4 4 6-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="18" cy="7" r="2" fill="currentColor" opacity="0.2" />
+      <path d="M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M6 16l4-6 4 4 6-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="18" cy="7" r="1" fill="currentColor" />
     </svg>
   ),
+
   history: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 6v6l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   file: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9 15h6M9 18h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-5-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13 2v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M8 15h5M8 18h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
+
   contact: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   about: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 16v-4M8 12h.01M16 12h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
+
   ai: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 2a3 3 0 013 3v2a3 3 0 01-6 0V5a3 3 0 013-3z" fill="currentColor" opacity="0.15" />
-      <path d="M12 2a3 3 0 013 3v2a3 3 0 01-6 0V5a3 3 0 013-3z" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M8 18l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 2a3 3 0 0 1 3 3v2a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M8 18l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="12" cy="16" r="1" fill="currentColor" />
-      <circle cx="8" cy="14" r="1" fill="currentColor" opacity="0.5" />
-      <circle cx="16" cy="14" r="1" fill="currentColor" opacity="0.5" />
     </svg>
   ),
+
   notification: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
+
   user: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M4 20v-2a6 6 0 0 1 12 0v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
+
   search: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M20 20l-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
+
   mail: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   check: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M9 13l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
+  verify: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M8 12l2 2 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+
   warning: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 2L2 22h20L12 2z" fill="currentColor" opacity="0.15" />
-      <path d="M12 2L2 22h20L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 2l7 12h-14z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M12 9v5M12 17h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
+
   danger: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.15" />
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
+
   arrowUp: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   arrowDown: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   globe: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M2 12h20M12 2a13 13 0 0 1 4 8 13 13 0 0 1-4 8 13 13 0 0 1-4-8 13 13 0 0 1 4-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
+
   lock: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <circle cx="12" cy="16" r="1" fill="currentColor" />
     </svg>
   ),
+
+  shieldLock: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M12 2l-7 5v5c0 4.71 6.43 8 7 8s7-3.29 7-8V7l-7-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 8v3M9 11h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  ),
+
+  shieldAlert: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M12 2l-7 5v5c0 4.71 6.43 8 7 8s7-3.29 7-8V7l-7-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 9v5M12 17h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
+
   network: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
       <circle cx="12" cy="4" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="5" cy="20" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="19" cy="20" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 6v3M7 18l3-4M17 18l-3-4" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="12" cy="10" r="1" fill="currentColor" opacity="0.3" />
+      <circle cx="4" cy="20" r="2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="20" cy="20" r="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M12 6v3M7 18l3-4M17 18l-3-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="12" cy="10" r="1" fill="currentColor" opacity="0.4" />
     </svg>
   ),
+
   download: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   send: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M22 2L11 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   close: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   menu: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
+
   chevronRight: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
+  chevronDown: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+
   report: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13 2v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 13H9M16 17H9M10 9H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
+
   speed: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   shieldCheck: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 2L3 7v6c0 5.25 9 9 9 9s9-3.75 9-9V7l-9-5z" fill="currentColor" opacity="0.12" />
-      <path d="M12 2L3 7v6c0 5.25 9 9 9 9s9-3.75 9-9V7l-9-5z" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.08" />
+      <path d="M12 2l-7 5v5c0 4.71 6.43 8 7 8s7-3.29 7-8V7l-7-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+
   github: (props) => (
-    <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" fill="currentColor" opacity="0.15" />
-      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 0 24 24" fill="currentColor" {...props}>
+      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.33.465-2.38 1.235-3.22-.135-.333-.55-1.593.715-2.178 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23 1.265.585 1.768 1.845.715 2.178.77.84 1.235 1.89 1.235 3.22 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.698.823.577C20.565 21.795 24 17.3 24 12.273 24 5.373 18.626 0 12 0z" />
     </svg>
   ),
+
   instagram: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
+      <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+      <circle cx="17" cy="7" r="1" fill="currentColor" />
     </svg>
   ),
+
+  linkedin: (props) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1 2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  ),
+
   star: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 2l3 7h7l-5.5 5 2 8L12 17l-5.5 4 2-8L3 9h7l3-7z" fill="currentColor" opacity="0.15" />
-      <path d="M12 2l3 7h7l-5.5 5 2 8L12 17l-5.5 4 2-8L3 9h7l3-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 2l3 7h7l-5 5 2 7L12 16l-5-5 2-7h7l3-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+
+  external: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M21 14v-2a2 2 0 0 0-2-2H5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="7 17 12 12 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 3v4a2 2 0 0 0 2 2h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+
+  link: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.73" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.73" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+
+  clock: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+
+  eye: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
+    </svg>
+  ),
+
+  key: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M21 2l-2 2M7.7 7.7a3 3 0 1 0 4.243 4.243L18 12l-1.414 1.414a4 4 0 0 1-5.657 0L7.7 15.6a4 4 0 0 1 0-5.657z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
 };

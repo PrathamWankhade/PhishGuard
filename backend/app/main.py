@@ -1,3 +1,4 @@
+import os
 import time
 import re
 from collections import defaultdict
@@ -123,12 +124,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-ALLOWED_ORIGINS = [
+# Comma-separated ALLOWED_ORIGINS env var overrides the default dev origins.
+# This lets a deployment point the backend at its real frontend origin (or a
+# non-default dev port) without editing code. Never default to '*' — the API
+# is cookie/CORS-scoped and must stay origin-locked.
+_DEFAULT_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+] or _DEFAULT_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
