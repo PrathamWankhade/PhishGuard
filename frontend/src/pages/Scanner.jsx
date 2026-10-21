@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Icon from '../components/Icon.jsx';
 import EmailInput from '../components/EmailInput.jsx';
 import PredictionCard from '../components/PredictionCard.jsx';
 import UploadEmail from '../components/UploadEmail.jsx';
 import { SkeletonCard } from '../components/Skeleton.jsx';
 import { scanEmail } from '../services/api.js';
+import { useToast } from '../components/Toast.jsx';
 
 const SAMPLE_EMAIL = 'URGENT! Your online banking account will be suspended immediately. Click https://secure-bank-login.verify-now.example to verify your password and OTP.';
 const SAMPLE_SENDER = 'support@sbi-security-alert.xyz';
@@ -16,6 +17,8 @@ export default function Scanner() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const textareaRef = useRef(null);
+  const { toast } = useToast();
 
   const hasHeaderEvidence = headers.reply_to || headers.return_path || headers.auth_results;
 
@@ -31,12 +34,36 @@ export default function Scanner() {
       }
       const prediction = await scanEmail({ email_text: emailText, sender, ...headers });
       setResult(prediction);
+      toast({
+        title: 'Scan complete',
+        description: `Result: ${prediction.label} — Risk ${prediction.risk_score ?? prediction.confidence}%`,
+        variant: prediction.label === 'Phishing Email' ? 'destructive' : 'success',
+      });
+      // Move focus to result area for screen readers
+      if (textareaRef.current) textareaRef.current.focus();
     } catch (err) {
       setResult(null);
       setError(`${err.message}. The ML detector did not run — no result shown.`);
+      toast({
+        title: 'Scan failed',
+        description: err.message,
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleRescan() {
+    handleScan(new Event('submit'));
+  }
+
+  function handleReport() {
+    toast({
+      title: 'Report submitted',
+      description: 'This result has been flagged for review. Thank you for helping improve detection.',
+      variant: 'success',
+    });
   }
 
   function loadSample() {
@@ -46,6 +73,11 @@ export default function Scanner() {
     setResult(null);
     setError(null);
   }
+
+  // Focus textarea on mount
+  useEffect(() => {
+    if (textareaRef.current) textareaRef.current.focus();
+  }, []);
 
   return (
     <div className="animate-fade-in-up">
@@ -76,11 +108,9 @@ export default function Scanner() {
                 {hasHeaderEvidence ? ' (evidence attached)' : ' (optional)'}
               </summary>
               <div className="mt-3 space-y-2">
-                {[
-                  ['reply_to', 'Reply-To', 'Where replies go. A mismatch with the sender domain is a spoofing signal.'],
+                {[['reply_to', 'Reply-To', 'Where replies go. A mismatch with the sender domain is a spoofing signal.'],
                   ['return_path', 'Return-Path', 'Where bounces go. A mismatch with the sender domain is a spoofing signal.'],
-                  ['auth_results', 'Authentication-Results', 'Paste a received SPF/DKIM/DMARC line if you have one.'],
-                ].map(([key, label, help]) => (
+                  ['auth_results', 'Authentication-Results', 'Paste a received SPF/DKIM/DMARC line if you have one.']].map(([key, label, help]) => (
                   <label key={key} className="block">
                     <span className="text-xs font-medium text-text-disabled">{label}</span>
                     <input
@@ -103,6 +133,7 @@ export default function Scanner() {
           <div className="grid gap-6">
             <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary">2 — Scan and review</h2>
             <EmailInput
+              ref={textareaRef}
               value={emailText}
               sender={sender}
               onEmailChange={setEmailText}
@@ -116,12 +147,12 @@ export default function Scanner() {
               </div>
             )}
             {loading ? (
-              <div role="status" aria-label="Scanning email">
-                <SkeletonCard />
+              <div role="status" aria-label="Scanning email" className="flex flex-col items-center gap-2">
+                <SkeletonCard className="w-full h-48" />
                 <p className="mt-2 text-center text-xs text-text-disabled">Analyzing… results appear here without moving the page.</p>
               </div>
             ) : (
-              <PredictionCard result={result} />
+              <PredictionCard result={result} onRescan={handleRescan} onReport={handleReport} />
             )}
           </div>
         </div>

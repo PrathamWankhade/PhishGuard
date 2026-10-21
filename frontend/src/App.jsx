@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
+import { useToast, Toast } from './components/Toast.jsx';
 
 const Home = lazy(() => import('./pages/Home.jsx'));
 const Scanner = lazy(() => import('./pages/Scanner.jsx'));
@@ -17,6 +18,17 @@ function PageLoader() {
         <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary-500 border-t-transparent" />
         <p className="text-sm text-text-secondary">Loading...</p>
       </div>
+    </div>
+  );
+}
+
+function ToastRenderer() {
+  const { toasts, dismiss } = useToast();
+  return (
+    <div className="pointer-events-none fixed top-4 right-4 z-50 flex flex-col gap-2">
+      {toasts.map((t) => (
+        <Toast key={t.id} {...t} onDismiss={() => dismiss(t.id)} />
+      ))}
     </div>
   );
 }
@@ -39,6 +51,7 @@ export default function App() {
             </Routes>
           </Suspense>
         </main>
+        <ToastRenderer />
         <Footer />
       </div>
     </HashRouter>

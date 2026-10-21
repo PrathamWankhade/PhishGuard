@@ -6,6 +6,7 @@ const UPLOAD_API = import.meta.env.VITE_API_BASE_URL
 
 export default function UploadEmail({ onLoad, onSenderLoad, onHeadersLoad }) {
   const [notice, setNotice] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   function emitHeaders(parsed) {
     onHeadersLoad?.({
@@ -19,9 +20,12 @@ export default function UploadEmail({ onLoad, onSenderLoad, onHeadersLoad }) {
     const file = event.target.files?.[0];
     if (!file) return;
     setNotice(null);
+    setUploading(true);
+    event.target.value = '';
 
     if (file.size > 2_000_000) {
       setNotice('File exceeds 2MB limit.');
+      setUploading(false);
       return;
     }
 
@@ -40,7 +44,7 @@ export default function UploadEmail({ onLoad, onSenderLoad, onHeadersLoad }) {
         onLoad(body || '');
         emitHeaders(parsed);
         if (parsed.errors?.length) setNotice(`Parsed with warnings: ${parsed.errors.join('; ')}`);
-        if (parsed.errors?.length) setNotice(`Parsed with warnings: ${parsed.errors.join('; ')}`);
+        setUploading(false);
         return;
       }
     } catch {
@@ -65,6 +69,11 @@ export default function UploadEmail({ onLoad, onSenderLoad, onHeadersLoad }) {
     onSenderLoad?.(extractedSender);
     onLoad(extractedBody);
     emitHeaders(null);
+    setUploading(false);
+  }
+
+  function dismissNotice() {
+    setNotice(null);
   }
 
   return (
@@ -76,17 +85,46 @@ export default function UploadEmail({ onLoad, onSenderLoad, onHeadersLoad }) {
         type="file"
         accept=".txt,.eml"
         onChange={handleUpload}
-        className="mt-3 block w-full cursor-pointer rounded-lg border border-surface-300 bg-surface-50 px-4 py-3 text-sm text-text-secondary file:mr-4 file:rounded-lg file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-500 hover:file:bg-primary-100"
+        disabled={uploading}
+        className="mt-3 block w-full cursor-pointer rounded-lg border border-surface-300 bg-surface-50 px-4 py-3 text-sm text-text-secondary file:mr-4 file:rounded-lg file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-500 hover:file:bg-primary-100 disabled:opacity-60 disabled:cursor-not-allowed"
       />
       {notice && (
         <div
           role="alert"
-          className="mt-3 rounded-xl border border-suspicious-500/40 bg-suspicious-50 px-4 py-3"
+          className="mt-3 rounded-xl border border-suspicious-500/40 bg-suspicious-50 px-4 py-3 flex items-start gap-3"
         >
-          <p className="text-sm font-bold text-suspicious-700">Check before scanning</p>
-          <p className="mt-0.5 text-xs leading-5 text-suspicious-700">{notice}</p>
+          <IconUpload name="warning" size={16} className="mt-0.5 shrink-0 text-suspicious-700" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-suspicious-700">Check before scanning</p>
+            <p className="mt-0.5 text-xs leading-5 text-suspicious-700">{notice}</p>
+          </div>
+          <button
+            onClick={dismissNotice}
+            className="shrink-0 rounded-lg p-1 text-suspicious-700/60 hover:bg-suspicious-100 hover:text-suspicious-700 transition"
+            aria-label="Dismiss"
+          >
+            <IconUpload name="close" size={14} />
+          </button>
         </div>
       )}
     </div>
   );
+}
+
+// Inline icon fallback for upload notices (keeps UploadEmail self-contained)
+function IconUpload({ name, size = 16, className = '' }) {
+  const icons = {
+    warning: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ width: size, height: size }}>
+        <path d="M12 2l7 12h-14z" />
+        <path d="M12 9v5M12 17h.01" />
+      </svg>
+    ),
+    close: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ width: size, height: size }}>
+        <path d="M18 6L6 18M6 6l12 12" />
+      </svg>
+    ),
+  };
+  return icons[name] || null;
 }

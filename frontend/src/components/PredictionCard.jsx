@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 
 const riskStyles = {
   high: {
@@ -30,7 +30,7 @@ const riskStyles = {
   },
 };
 
-export default function PredictionCard({ result }) {
+export default function PredictionCard({ result, onRescan, onReport }) {
   if (!result) {
     return (
       <div className="animate-scale-in rounded-2xl border border-surface-300 bg-white p-8 text-center shadow-card">
@@ -48,6 +48,17 @@ export default function PredictionCard({ result }) {
   }
 
   const style = riskStyles[result.risk_level] || riskStyles.medium;
+
+  const copyResult = useCallback(() => {
+    const text = [
+      `Verdict: ${result.label}`,
+      `Risk Score: ${result.risk_score ?? result.confidence}%`,
+      `Model P(phishing): ${result.phishing_probability != null ? (result.phishing_probability * 100).toFixed(1) : 'N/A'}%`,
+      `Risk Level: ${result.risk_level}`,
+      `Evidence: ${(result.signals || result.reasons || []).join('; ') || 'none'}`,
+    ].join('\n');
+    navigator.clipboard.writeText(text).then(() => {});
+  }, [result]);
 
   return (
     <div className={`animate-scale-in rounded-2xl border-2 ${style.border} bg-white p-6 shadow-card`}>
@@ -69,6 +80,31 @@ export default function PredictionCard({ result }) {
             </p>
           )}
         </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="mb-5 flex gap-2 sm:flex-wrap">
+        <button
+          onClick={onRescan}
+          disabled={!onRescan}
+          className="flex-1 sm:flex-auto inline-flex items-center justify-center gap-2 rounded-lg border border-surface-300 bg-white px-4 py-2.5 text-sm font-medium text-text-primary shadow-card transition hover:bg-surface-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Icon name="refresh" size={16} /> Re-scan
+        </button>
+        <button
+          onClick={copyResult}
+          className="flex-1 sm:flex-auto inline-flex items-center justify-center gap-2 rounded-lg border border-surface-300 bg-white px-4 py-2.5 text-sm font-medium text-text-primary shadow-card transition hover:bg-surface-50"
+        >
+          <Icon name="external" size={16} /> Copy Result
+        </button>
+        {onReport && (
+          <button
+            onClick={onReport}
+            className="flex-1 sm:flex-auto inline-flex items-center justify-center gap-2 rounded-lg border border-danger-100 bg-danger-50 px-4 py-2.5 text-sm font-medium text-danger-600 transition hover:bg-danger-100"
+          >
+            <Icon name="shieldAlert" size={16} /> Report False Positive
+          </button>
+        )}
       </div>
 
       {/* Risk Bar */}

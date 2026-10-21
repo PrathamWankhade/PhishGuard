@@ -248,6 +248,13 @@ const icons = {
     </svg>
   ),
 
+  refresh: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M23 4c0-4.9-3.9-8.8-8.8-8.8c-4.8 0-8.7 3.9-8.7 8.7c0 1 0.2 2 0.5 2.9c-2.2-0.4-4.4-1.3-6-2.7c-0.9 1.8-1.4 3.8-1.4 5.9c0 4.9 3.9 8.8 8.8 8.8c1.3 0 2.6-0.3 3.7-0.9c0.4 1.5 1.4 2.6 2.9 2.9c2.3 1.1 4.9 1.7 7.6 1.7c5.3 0 9.6-4.3 9.6-9.6C24 7.3 24 5.7 23 4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M17.5 19.5c-1.2 0-2.4-0.2-3.5-0.6c-0.5-0.2-0.8-0.7-0.8-1.3c0-0.9 0.7-1.7 1.7-1.7c0.7 0 1.4 0.4 1.7 1c0.3-0.4 0.5-0.9 0.5-1.4c0-1.9-1.6-3.5-3.5-3.5c-1.1 0-2.1 0.5-2.8 1.3c-0.4 0.4-0.6 0.9-0.6 1.5c0 2.6 2.1 4.7 4.7 4.7c1.4 0 2.7-0.6 3.6-1.6c0.4-0.4 0.5-1 0.3-1.5c-0.2-0.6-0.8-1-1.4-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+
   shieldCheck: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
       <path d="M12 2l-7 5v5c0 4.71 6.43 8 7 8s7-3.29 7-8V7l-7-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -278,6 +285,13 @@ const icons = {
   star: (props) => (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
       <path d="M12 2l3 7h7l-5 5 2 7L12 16l-5-5 2-7h7l3-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+
+  info: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 11h.01M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
 
