@@ -1,9 +1,17 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, forwardRef } from 'react';
 import Icon from '../components/Icon.jsx';
 
-export default function EmailInput({ value, sender, onEmailChange, onSenderChange, onScan, loading }) {
+const EmailInput = forwardRef(({ value, sender, onEmailChange, onSenderChange, onScan, loading }, ref) => {
   const textareaRef = useRef(null);
   const isEmpty = !value || !value.trim();
+
+  // Forward ref to the underlying textarea
+  useEffect(() => {
+    if (ref) {
+      if (typeof ref === 'function') ref(textareaRef.current);
+      else ref.current = textareaRef.current;
+    }
+  }, [ref]);
 
   // Ctrl/Cmd + Enter to scan
   useEffect(() => {
@@ -25,7 +33,8 @@ export default function EmailInput({ value, sender, onEmailChange, onSenderChang
       }}
       className="rounded-2xl border border-surface-300 bg-white p-6 shadow-card"
     >
-      {/* Header */}      <div className="mb-6">
+      {/* Header */}
+      <div className="mb-6">
         <span className="inline-flex items-center gap-2 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary-500">
           <span className="h-1.5 w-1.5 rounded-full bg-primary-500" />
           Email Threat Scanner
@@ -101,4 +110,8 @@ export default function EmailInput({ value, sender, onEmailChange, onSenderChang
       </button>
     </form>
   );
-}
+});
+
+EmailInput.displayName = 'EmailInput';
+
+export default EmailInput;

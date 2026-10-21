@@ -21,55 +21,65 @@ export default function UploadEmail({ onLoad, onSenderLoad, onHeadersLoad }) {
     if (!file) return;
     setNotice(null);
     setUploading(true);
-    event.target.value = '';
 
-    if (file.size > 2_000_000) {
-      setNotice('File exceeds 2MB limit.');
-      setUploading(false);
-      return;
-    }
-
-    // Prefer backend MIME parsing; fall back to plain text for .txt.
     try {
-      const form = new FormData();
-      form.append('file', file);
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15000);
-      const resp = await fetch(UPLOAD_API, { method: 'POST', body: form, signal: controller.signal });
-      clearTimeout(timer);
-      if (resp.ok) {
-        const parsed = await resp.json();
-        const body = parsed.subject ? `Subject: ${parsed.subject}\n\n${parsed.body}` : parsed.body;
-        onSenderLoad?.(parsed.sender || '');
-        onLoad(body || '');
-        emitHeaders(parsed);
-        if (parsed.errors?.length) setNotice(`Parsed with warnings: ${parsed.errors.join('; ')}`);
-        setUploading(false);
+      if (file.size > 2_000_000) {
+        setNotice('File exceeds 2MB limit.');
         return;
       }
-    } catch {
-      // Fall through to local handling below.
+
+      // Prefer backend MIME parsing; fall back to plain text for .txt.
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 15000);
+        const resp = await fetch(UPLOAD_API, {
+          method: 'POST',
+          body: form,
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (resp.ok) {
+          const parsed = await resp.json();
+          const body = parsed.subject ? `Subject: ${parsed.subject}\n\n${parsed.body}` : parsed.body;
+          onSenderLoad?.(parsed.sender || '');
+          onLoad(body || '');
+          emitHeaders(parsed);
+          if (parsed.errors?.length) {
+            setNotice(`Parsed with warnings: ${parsed.errors.join('; ')}`);
+          }
+          return;
+        }
+      } catch {
+        // Fall through to local handling below.
+      }
+
+      const text = await file.text();
+      let extractedSender = '';
+      let extractedBody = text;
+
+      if (file.name.endsWith('.eml')) {
+        setNotice('Backend parser unavailable — showing raw content; results may be less accurate.');
+        const senderMatch = text.match(/From:\s*(.+)/i);
+        const bodyMatch = text.split(/\r?\n\r?\n/);
+        extractedSender = senderMatch?.[1] || '';
+        extractedBody = bodyMatch?.slice(1).join('\n') || text;
+      } else if (file.name.endsWith('.txt')) {
+        const senderMatch = text.match(/From:\s*(.+)/i);
+        if (senderMatch) extractedSender = senderMatch[1];
+      }
+
+      onSenderLoad?.(extractedSender);
+      onLoad(extractedBody);
+      emitHeaders(null);
+    } catch (err) {
+      setNotice(`Upload failed: ${err.message}`);
+    } finally {
+      setUploading(false);
+      // Reset the file input so the same file can be re-selected
+      event.target.value = '';
     }
-
-    const text = await file.text();
-    let extractedSender = '';
-    let extractedBody = text;
-
-    if (file.name.endsWith('.eml')) {
-      setNotice('Backend parser unavailable — showing raw content; results may be less accurate.');
-      const senderMatch = text.match(/From:\s*(.+)/i);
-      const bodyMatch = text.split(/\r?\n\r?\n/);
-      extractedSender = senderMatch?.[1] || '';
-      extractedBody = bodyMatch?.slice(1).join('\n') || text;
-    } else if (file.name.endsWith('.txt')) {
-      const senderMatch = text.match(/From:\s*(.+)/i);
-      if (senderMatch) extractedSender = senderMatch[1];
-    }
-
-    onSenderLoad?.(extractedSender);
-    onLoad(extractedBody);
-    emitHeaders(null);
-    setUploading(false);
   }
 
   function dismissNotice() {
@@ -111,7 +121,6 @@ export default function UploadEmail({ onLoad, onSenderLoad, onHeadersLoad }) {
   );
 }
 
-// Inline icon fallback for upload notices (keeps UploadEmail self-contained)
 function IconUpload({ name, size = 16, className = '' }) {
   const icons = {
     warning: (
