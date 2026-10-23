@@ -1,10 +1,10 @@
 <div align="center">
 
-# Email Phishing Detection System
+# PhishGuard — Email Phishing Detection System
 
 **Traceable verdicts. Honest scores. Evidence you can inspect.**
 
-[![CI](https://github.com/PrathamWankhade/email-phishing-detection-system/actions/workflows/ci.yml/badge.svg)](https://github.com/PrathamWankhade/email-phishing-detection-system/actions/workflows/ci.yml)
+[![CI](https://github.com/PrathamWankhade/PhishGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/PrathamWankhade/PhishGuard/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev)
