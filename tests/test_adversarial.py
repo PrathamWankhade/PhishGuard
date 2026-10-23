@@ -1,9 +1,10 @@
 """Adversarial + difficult-negative evaluation (tests/fixtures/adversarial.jsonl).
 
-Measured baseline (2026-10-14, phase4 model): 7/7 phishing caught, 3/5
-legitimate-but-suspicious mails over-flagged as Phishing. This test locks
-those numbers as a CEILING (do not regress), not a quality bar — the
-false-positive gap on legitimate mail with suspicious words is tracked work.
+Measured baseline (2026-10-23, phase4 model, body-only classifier input):
+7/7 phishing caught (none classified Safe), 2/5 legitimate-but-suspicious
+mails over-flagged as Phishing. This test locks those numbers as a CEILING
+(do not regress), not a quality bar — the false-positive gap on legitimate
+mail with suspicious words is tracked work.
 """
 import json
 from pathlib import Path
@@ -42,4 +43,4 @@ def test_legitimate_false_positive_ceiling():
         out = detect_phishing(case["text"], case["sender"], case.get("reply_to", ""))
         if out["verdict"] == "Phishing Email":
             fps.append(case["id"])
-    assert len(fps) <= 3, f"false-positive regression (baseline 3/5): {fps}"
+    assert len(fps) <= 2, f"false-positive regression (baseline 2/5): {fps}"
