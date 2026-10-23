@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import Icon from './Icon.jsx';
 
 const riskStyles = {
   high: {

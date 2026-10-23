@@ -22,8 +22,7 @@ export default function Scanner() {
 
   const hasHeaderEvidence = headers.reply_to || headers.return_path || headers.auth_results;
 
-  async function handleScan(e) {
-    e.preventDefault();
+  async function handleScan() {
     setLoading(true);
     setError(null);
     try {
@@ -55,7 +54,7 @@ export default function Scanner() {
   }
 
   function handleRescan() {
-    handleScan(new Event('submit'));
+    handleScan();
   }
 
   function handleReport() {
