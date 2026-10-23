@@ -40,7 +40,6 @@ Response (`200`, `status: "completed"`):
   "model_prediction": "phishing",
   "model_confidence": 88.4,
   "phishing_probability": 0.884,
-  "confidence": 96.4,
   "risk_score": 96.4,
   "risk_level": "high",
   "reasons": ["Sender uses a suspicious top-level domain", "..."],
@@ -48,7 +47,7 @@ Response (`200`, `status: "completed"`):
   "ai_explanation": ["..."],
   "explanation_source": "ai",
   "source": "backend-ai-engine",
-  "policy_version": "phase3-evidence-v2",
+  "policy_version": "phase4-probability-v3",
   "email_hash": "9f2c..."
 }
 ```
@@ -61,8 +60,6 @@ Field semantics:
   (0–1). This, not `model_confidence`, feeds the risk score.
 - `risk_score` — heuristic policy score (0–99). **Not a calibrated
   probability**; do not display it with probability language.
-- `confidence` — legacy alias of `risk_score`, kept for existing clients.
-  New clients should use `model_confidence` / `risk_score`.
 - `verdict` / `label` — final Safe / Suspicious / Phishing decision.
 - `signals` / `reasons` — deterministic evidence strings (identical lists).
 - `ai_explanation` — supplementary LLM summary, or `null` in local-only
@@ -77,8 +74,10 @@ load, `/ready` reports `not_ready` (503).
 
 Parse a raw email file server-side (preferred over browser parsing).
 
-- Multipart form field `file`; accepted types `.eml`, `.txt`, `.msg`;
-  2MB limit (`413`), empty file (`422`), wrong type (`415`).
+- Multipart form field `file`; accepted types `.eml`, `.txt`; 2MB limit
+  (`413`), empty file (`422`), wrong type (`415`). Outlook `.msg` is an OLE
+  binary format with no parser here and is deliberately rejected (`415`) until
+  a real MSG parser exists.
 - Response: `{ sender, subject, reply_to, return_path, body, urls,
   attachments[{filename, content_type, size_bytes}], errors[] }`.
 - Malformed messages never raise: the parser returns what it could extract
@@ -86,7 +85,7 @@ Parse a raw email file server-side (preferred over browser parsing).
 
 ## GET `/api/v1/history`
 
-Scan history, newest first: `[{ id, sender, prediction, confidence,
+Scan history, newest first: `[{ id, sender, prediction, risk_score,
 risk_level, reasons[], scan_count, created_at }]`. A `scan_count > 1` means
 the same canonical email was rescanned. (Auth-gated — see above.)
 
@@ -102,7 +101,7 @@ Aggregated KPIs computed from the database (never demo data):
   "phishing_count": 30,
   "suspicious_count": 12,
   "safe_count": 78,
-  "avg_confidence": 81.4,
+  "avg_risk_score": 81.4,
   "risk_levels": { "high": 30, "medium": 12, "low": 78 }
 }
 ```
@@ -112,7 +111,7 @@ are distinct measures — use the one your KPI defines. (Auth-gated.)
 
 ## GET `/api/v1/analytics/summary`
 
-`{ scanned_emails, phishing_detected, average_confidence, suspicious_urls }`
+`{ scanned_emails, phishing_detected, average_risk_score, suspicious_urls }`
 — lightweight counters for ops views. (Auth-gated.)
 
 ## POST `/api/v1/feedback` · GET `/api/v1/feedback/stats`

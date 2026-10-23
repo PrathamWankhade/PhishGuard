@@ -91,8 +91,12 @@ def generate_reasons(email_text: str, sender: str) -> list:
 def predict_email(email_text: str, sender: str = "") -> dict:
     model, vectorizer = _load_models()
 
-    text = email_text + " " + sender
-    vectorized = vectorizer.transform([text])
+    # Train/serve parity: the vectorizer is fit on email bodies only, and the
+    # published release metrics are measured text-only (sender=''). Appending
+    # the sender string here would score an input distribution the model was
+    # never trained or evaluated on, so sender evidence is handled exclusively
+    # by the bounded sender analyzer in the decision engine.
+    vectorized = vectorizer.transform([email_text])
 
     prediction = model.predict(vectorized)[0]
     probabilities = model.predict_proba(vectorized)[0]

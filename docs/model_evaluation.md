@@ -47,6 +47,14 @@ evaluation therefore reports the full suite:
 - `trained_models/model_metadata.json` records model type, TF-IDF config,
   split strategy, CV statistics, test metrics, sklearn version, and dataset
   row counts for every release.
+- **Train/serve parity** — the classifier consumes the email **body text
+  only**, at training *and* at serving (`ai-engine/inference/predict.py`).
+  Sender and header evidence are handled by the bounded sender/auth/BEC
+  analyzers in the decision engine, never concatenated into the vectorizer
+  input. Consequence: the published metrics describe exactly the input the
+  deployed classifier sees. If sender were appended at serving time only, the
+  model would be scored on a distribution it was neither trained nor measured
+  on, and the reported numbers would no longer apply.
 - `datasets/final/dataset_manifest.json` records provenance, class balance,
   dedup method (SHA-256 of normalized full text), conflicting-label counts,
   and source list.

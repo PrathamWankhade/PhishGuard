@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import useScrollReveal from '../hooks/useScrollReveal.js';
+import { API_BASE_URL } from '../services/api.js';
 
-const HISTORY_API = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/history`
-  : 'http://127.0.0.1:8000/api/v1/history';
+const HISTORY_API = `${API_BASE_URL}/history`;
 
 export default function History() {
   const [records, setRecords] = useState([]);
@@ -147,8 +146,8 @@ export default function History() {
                   <th className="cursor-pointer px-5 py-4 group anim-fast hover:bg-surface-100" onClick={() => toggleSort('prediction')}>
                     <span className="inline-flex items-center gap-1">Prediction <SortIcon columnKey="prediction" /></span>
                   </th>
-                  <th className="cursor-pointer px-5 py-4 group anim-fast hover:bg-surface-100" onClick={() => toggleSort('confidence')}>
-                    <span className="inline-flex items-center gap-1">Confidence <SortIcon columnKey="confidence" /></span>
+                  <th className="cursor-pointer px-5 py-4 group anim-fast hover:bg-surface-100" onClick={() => toggleSort('risk_score')}>
+                    <span className="inline-flex items-center gap-1">Risk score <SortIcon columnKey="risk_score" /></span>
                   </th>
                   <th className="cursor-pointer px-5 py-4 group anim-fast hover:bg-surface-100" onClick={() => toggleSort('risk_level')}>
                     <span className="inline-flex items-center gap-1">Risk <SortIcon columnKey="risk_level" /></span>
@@ -173,7 +172,7 @@ export default function History() {
                         {r.prediction}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 font-semibold text-primary-500">{r.confidence}%</td>
+                    <td className="px-5 py-3.5 font-semibold text-primary-500">{r.risk_score}%</td>
                     <td className="px-5 py-3.5">
                       <span className={`inline-block rounded-md px-2.5 py-0.5 text-xs font-semibold ${
                         r.risk_level === 'high' ? 'bg-danger-50 text-danger-700'

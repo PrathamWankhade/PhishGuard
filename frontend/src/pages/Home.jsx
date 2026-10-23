@@ -5,12 +5,12 @@ import useScrollReveal from '../hooks/useScrollReveal.js';
 import useCountUp from '../hooks/useCountUp.js';
 
 const features = [
-  { icon: 'shield', title: 'AI URL Detection', desc: 'Detects malicious URLs, shortened links, IP-based addresses, and homograph attacks in real time.' },
+  { icon: 'shield', title: 'Lexical URL Analysis', desc: 'Flags shortened links, IP-based hosts, punycode/homograph tricks, and suspicious TLDs. URLs are never fetched, so analysis is SSRF-safe by design.' },
   { icon: 'mail', title: 'Email Analysis', desc: 'Scans email content for phishing keywords, urgency language, credential harvesting attempts, and spoofed senders.' },
-  { icon: 'network', title: 'ML Classification', desc: 'Ensemble machine learning model (Logistic Regression + Random Forest) trained on thousands of phishing samples.' },
-  { icon: 'globe', title: 'Threat Intelligence', desc: 'Expanded TLD blacklist, impersonation detection, and domain reputation analysis for comprehensive coverage.' },
-  { icon: 'speed', title: 'Real-Time Scanning', desc: 'Lightning-fast analysis with lazy-loaded ML pipeline and Redis-ready caching for duplicate detection.' },
-  { icon: 'report', title: 'Security Reports', desc: 'Explainable AI via Gemini, confidence scoring, risk levels, and exportable scan history with charts.' },
+  { icon: 'network', title: 'ML Classification', desc: 'Soft-voting LogisticRegression + RandomForest over TF-IDF (50k features, 1–3 grams), trained on 195,740 labeled emails.' },
+  { icon: 'globe', title: 'Header & Auth Evidence', desc: 'Scores sender domain, Reply-To/Return-Path mismatches, authentication results, and BEC/fraud language as bounded, evidence-tagged risk.' },
+  { icon: 'speed', title: 'Fast, Deterministic Scans', desc: 'Single-pass analysis with lazy-loaded model artifacts and SHA-256 content-hash dedup. Deterministic signals never depend on an external service.' },
+  { icon: 'report', title: 'Traceable Verdicts', desc: 'Every verdict is backed by inspectable evidence; the policy risk score is kept separate from the model probability. Optional AI summaries need an API key.' },
 ];
 
 const workflow = [
@@ -162,10 +162,10 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-20">
           <div className="stagger-children grid grid-cols-2 gap-8 text-center md:grid-cols-4">
             {[
-              { label: 'URLs Scanned', value: 12847, suffix: '' },
-              { label: 'Threats Detected', value: 3421, suffix: '' },
-              { label: 'Detection Accuracy', value: 97.2, suffix: '%' },
-              { label: 'Avg. Response Time', value: 1.2, prefix: '<', suffix: 's' },
+              { label: 'Training Emails', value: 195740, suffix: '' },
+              { label: 'Test Holdout', value: 39148, suffix: '' },
+              { label: 'Test Accuracy', value: 98.25, suffix: '%' },
+              { label: 'Phishing F1', value: 98.1, suffix: '%' },
             ].map(({ label, value, suffix, prefix }) => (
               <div key={label}>
                 <StatValue num={value} prefix={prefix} suffix={suffix} visible={statsVisible} />

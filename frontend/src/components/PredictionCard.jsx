@@ -41,7 +41,7 @@ export default function PredictionCard({ result, onRescan, onReport }) {
         </div>
         <h3 className="text-lg font-bold text-text-primary">No Scan Results Yet</h3>
         <p className="mt-2 text-sm text-text-secondary">
-          Scan an email to view phishing analysis, confidence score, risk level, and explainable AI insights.
+          Scan an email to view phishing analysis, the policy risk score, risk level, and explainable AI insights.
         </p>
       </div>
     );
@@ -52,7 +52,7 @@ export default function PredictionCard({ result, onRescan, onReport }) {
   const copyResult = useCallback(() => {
     const text = [
       `Verdict: ${result.label}`,
-      `Risk Score: ${result.risk_score ?? result.confidence}%`,
+      `Risk Score: ${result.risk_score}%`,
       `Model P(phishing): ${result.phishing_probability != null ? (result.phishing_probability * 100).toFixed(1) : 'N/A'}%`,
       `Risk Level: ${result.risk_level}`,
       `Evidence: ${(result.signals || result.reasons || []).join('; ') || 'none'}`,
@@ -73,7 +73,7 @@ export default function PredictionCard({ result, onRescan, onReport }) {
         </div>
         <div className="text-left sm:text-right">
           <p className="text-xs font-medium text-text-disabled uppercase tracking-wider">Risk score</p>
-          <p className="text-3xl font-bold text-primary-500">{result.risk_score ?? result.confidence}%</p>
+          <p className="text-3xl font-bold text-primary-500">{result.risk_score}%</p>
           {result.phishing_probability != null && (
             <p className="mt-1 text-xs text-text-disabled">
               Model P(phishing): {(result.phishing_probability * 100).toFixed(1)}%
@@ -111,10 +111,10 @@ export default function PredictionCard({ result, onRescan, onReport }) {
       <div className="mb-5">
         <div className="mb-1.5 flex justify-between text-xs text-text-secondary">
           <span>Policy risk score (heuristic, not a probability)</span>
-          <span>{result.risk_score ?? result.confidence}%</span>
+          <span>{result.risk_score}%</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-surface-200">
-          <div className={`h-full rounded-full transition-all duration-700 ${style.bar}`} style={{ width: `${result.risk_score ?? result.confidence}%` }} />
+          <div className={`h-full rounded-full transition-all duration-700 ${style.bar}`} style={{ width: `${result.risk_score}%` }} />
         </div>
       </div>
 
@@ -130,7 +130,7 @@ export default function PredictionCard({ result, onRescan, onReport }) {
         <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
           <p className="text-xs font-medium text-text-disabled uppercase tracking-wider">Risk score</p>
           <p className="mt-1 text-base font-semibold text-primary-500">
-            {result.risk_score ?? result.confidence}% · {result.risk_level}
+            {result.risk_score}% · {result.risk_level}
           </p>
         </div>
         <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">

@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import Icon from './Icon.jsx';
+import { API_BASE_URL } from '../services/api.js';
 
-const HISTORY_API = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/history`
-  : 'http://127.0.0.1:8000/api/v1/history';
+const HISTORY_API = `${API_BASE_URL}/history`;
 
 const links = [
   { to: '/', label: 'Home', icon: 'shield' },

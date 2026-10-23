@@ -16,11 +16,11 @@ export default function About() {
 
       <div className="stagger-children grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {[
-          { title: 'Machine Learning Model', desc: 'Ensemble of Logistic Regression and Random Forest trained on thousands of legitimate and phishing emails with TF-IDF vectorization using n-grams (1,3).' },
+          { title: 'Machine Learning Model', desc: 'Soft-voting LogisticRegression + RandomForest trained on 195,740 labeled emails with TF-IDF vectorization (50k features, n-grams 1–3). Reported on a 39,148-mail stratified holdout.' },
           { title: 'NLP Preprocessing', desc: 'Text cleaning, tokenization, stopword removal, and stemming to normalize email content before feature extraction.' },
-          { title: 'URL Analysis', desc: 'Detects suspicious TLDs, shortened URLs, IP-based links, homograph attacks, and phishing keywords in domain names.' },
-          { title: 'Sender Analysis', desc: 'Validates sender domain against known TLDs, detects impersonation patterns, and flags suspicious sender behaviors.' },
-          { title: 'Explainable AI', desc: 'Gemini-powered natural language explanations help users understand why an email was classified as safe, suspicious, or malicious.' },
+          { title: 'URL Analysis', desc: 'Purely lexical detection of suspicious TLDs, shortened URLs, IP-based links, punycode/homograph attacks, and phishing keywords in domain names — no outbound fetches.' },
+          { title: 'Sender Analysis', desc: 'Scores the sender domain against suspicious TLDs, impersonation keywords, and header mismatches (Reply-To / Return-Path).' },
+          { title: 'Explainable AI', desc: 'Deterministic, inspectable evidence signals are the source of truth; an optional LLM summary (OpenRouter, requires a key) may be layered on and can never change the verdict.' },
           { title: 'Tech Stack', desc: 'React 19 + Tailwind CSS frontend, FastAPI backend, scikit-learn ML pipeline, SQLite database, and Docker deployment.' },
         ].map(({ title, desc }) => (
             <div key={title} className="hover-lift rounded-xl border border-surface-300 bg-white p-6 shadow-card">
@@ -33,7 +33,7 @@ export default function About() {
       <div className="mt-8 rounded-xl border border-surface-300 bg-white p-6 shadow-card">
         <h3 className="font-semibold text-text-primary">System Architecture</h3>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          {['React UI', 'FastAPI', 'ML Pipeline', 'SQLite DB', 'Gemini AI'].map((item) => (
+          {['React UI', 'FastAPI', 'ML Pipeline', 'SQLite DB', 'Optional LLM Summaries'].map((item) => (
             <span key={item} className="rounded-lg border border-surface-300 bg-surface-50 px-4 py-2 text-sm font-medium text-text-secondary">
               {item}
             </span>

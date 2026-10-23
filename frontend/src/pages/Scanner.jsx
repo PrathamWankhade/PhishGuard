@@ -36,7 +36,7 @@ export default function Scanner() {
       setResult(prediction);
       toast({
         title: 'Scan complete',
-        description: `Result: ${prediction.label} — Risk ${prediction.risk_score ?? prediction.confidence}%`,
+        description: `Result: ${prediction.label} — Risk ${prediction.risk_score}%`,
         variant: prediction.label === 'Phishing Email' ? 'destructive' : 'success',
       });
       // Move focus to result area for screen readers

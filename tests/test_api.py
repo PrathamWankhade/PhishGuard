@@ -17,7 +17,7 @@ def test_predict_endpoint():
     assert response.status_code == 200
     data = response.json()
     assert data["risk_level"] in {"medium", "high"}
-    assert "confidence" in data
+    assert "risk_score" in data
     assert "reasons" in data
     assert len(data["reasons"]) > 0
 

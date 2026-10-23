@@ -22,6 +22,6 @@ def get_summary() -> dict:
     return {
         "scanned_emails": total,
         "phishing_detected": phishing,
-        "average_confidence": round(avg_conf, 1) if avg_conf else 0,
+        "average_risk_score": round(avg_conf, 1) if avg_conf else 0,
         "suspicious_urls": urls,
     }

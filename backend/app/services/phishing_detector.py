@@ -101,10 +101,11 @@ def detect_phishing(
         # Combined heuristic policy score — distinct from model probability.
         "risk_score": risk_score,
         "risk_level": risk_level,
-        # Legacy field kept for existing UI/dashboard: now explicitly the
-        # risk score, not the model probability. New clients should use
-        # model_confidence / risk_score.
-        "confidence": risk_score,
+        # NOTE: no `confidence` alias here on purpose. A field named
+        # "confidence" that actually carries the policy risk score is exactly
+        # the model-probability/risk-score conflation this contract forbids;
+        # clients must read `risk_score` (policy) or `model_confidence` /
+        # `phishing_probability` (model).
         "signals": signals,
         "reasons": signals,
         "source": "backend-ai-engine",

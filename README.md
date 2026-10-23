@@ -68,7 +68,10 @@ flowchart LR
 1. **Parse** — `.eml` is parsed server-side (sender, subject, body, URLs,
    attachments, Reply-To/Return-Path). Malformed mail degrades gracefully.
 2. **Classify** — TF-IDF (50k, 1–3 grams) plus soft-voting
-   LogisticRegression/RandomForest returns a binary class and P(phishing).
+   LogisticRegression/RandomForest over the email **body text** returns a
+   binary class and P(phishing). The body is the only classifier input, at
+   training and at serving alike, so published metrics describe exactly what
+   the deployed model sees.
 3. **Corroborate** — URL (one record per URL), sender domain, header
    authentication, and BEC/fraud analyzers add bounded, evidence-tagged risk.
 4. **Decide** — `risk = P(phishing)*100 + url(<=20) + sender(<=30) +
@@ -197,9 +200,10 @@ Pipeline-CV training, full-text dataset dedup, MIME parsing, upload
 validation, dashboard semantics, Docker readiness, API-key gating, auth/BEC
 signals, header forwarding, feedback loop, CI.
 
-**Next:** retrained metrics publication, threshold re-validation, per-user
-history isolation, Redis-backed rate limiting, SSRF-safe URL reputation,
-transformer benchmark on the frozen test set.
+**Next:** threshold re-validation on the frozen test set, source-separated
+(unseen-campaign) evaluation with a rebuilt dataset, per-user history
+isolation, Redis-backed rate limiting, SSRF-safe URL reputation, transformer
+benchmark on the frozen test set.
 
 ## Author
 

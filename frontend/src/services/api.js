@@ -1,5 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
+/** Single source of truth for the API origin (see also components/pages that
+ *  import this instead of re-deriving it). */
+export { API_BASE_URL };
+
 const suspiciousTerms = [
   'urgent', 'verify', 'password', 'otp', 'bank', 'suspended',
   'click', 'login', 'payment', 'limited', 'account', 'immediately',
@@ -35,7 +39,6 @@ export function heuristicEstimate(emailText, sender = '') {
     status: 'heuristic-only',
     label,
     verdict: label,
-    confidence: score,
     risk_score: score,
     risk_level: score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low',
     reasons,

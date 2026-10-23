@@ -20,27 +20,6 @@ class PredictionRequest(BaseModel):
     auth_results: str = ""
 
 
-class PredictionResponse(BaseModel):
-    status: str = "completed"
-    label: str
-    verdict: str
-    prediction: str
-    model_prediction: str
-    model_confidence: float
-    # Required (no default): a missing phishing probability must fail
-    # validation, never masquerade as a valid zero.
-    phishing_probability: float
-    confidence: float
-    risk_score: float
-    risk_level: str
-    reasons: list[str]
-    signals: list[str]
-    ai_explanation: list[str] | None = None
-    explanation_source: str = "deterministic"
-    source: str = "backend-ai-engine"
-    email_hash: str = ""
-
-
 def sanitize_text(text: str) -> str:
     if not text:
         return ""
@@ -106,12 +85,12 @@ def predict_email(request: PredictionRequest):
             SET sender=?, prediction=?, confidence=?, risk_level=?, reasons=?,
                 scan_count=scan_count+1, created_at=CURRENT_TIMESTAMP
             WHERE email_hash=?
-        """, (safe_sender, result["label"], result["confidence"], result["risk_level"], reasons_json, email_hash))
+        """, (safe_sender, result["label"], result["risk_score"], result["risk_level"], reasons_json, email_hash))
     else:
         cursor.execute("""
             INSERT INTO scan_history (email_hash, sender, email_text, prediction, confidence, risk_level, reasons, scan_count)
             VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-        """, (email_hash, safe_sender, safe_text, result["label"], result["confidence"], result["risk_level"], reasons_json))
+        """, (email_hash, safe_sender, safe_text, result["label"], result["risk_score"], result["risk_level"], reasons_json))
 
     conn.commit()
     conn.close()

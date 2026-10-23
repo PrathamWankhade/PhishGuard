@@ -5,9 +5,9 @@ import useScrollReveal from '../hooks/useScrollReveal.js';
 const faq = [
   { q: 'How does the phishing detection work?', a: 'The system uses an ensemble ML model (Logistic Regression + Random Forest) with TF-IDF vectorization and n-gram analysis to classify emails. It also analyzes URLs, sender domains, and urgency signals for comprehensive detection.' },
   { q: 'What file formats are supported?', a: 'You can paste email text directly, upload .txt files, or .eml files. The system automatically extracts the sender from email headers when using .eml format.' },
-  { q: 'Is my data stored securely?', a: 'Scan history is stored locally in SQLite with hashed deduplication. Email content is used only for analysis and is not shared with third parties. API keys are stored in environment variables.' },
-  { q: 'Can I use this in production?', a: 'This is an open-source educational and research project. For production use, consider adding authentication, rate limiting, a production database, and deploying behind a reverse proxy.' },
-  { q: 'How accurate is the detection?', a: 'The ensemble model achieves over 94% accuracy on test data. Combined with URL analysis, sender analysis, and Gemini AI explanations, false positives are minimized.' },
+  { q: 'Is my data stored securely?', a: 'Scan history is stored locally in SQLite with SHA-256 deduplication. If AI summaries are enabled, up to 2,000 characters of email text are sent to the configured LLM provider; with no API key (or AI_EXPLANATIONS_ENABLED=false) nothing leaves the server.' },
+  { q: 'Can I use this in production?', a: 'It ships optional API-key gating (X-API-Key) and bounded in-process rate limiting, but per-user history isolation and Redis/shared rate limiting are intentionally out of scope. See docs/security.md for the trust boundaries.' },
+  { q: 'How accurate is the detection?', a: 'The classifier scores 98.25% accuracy and 98.1% phishing F1 on a 39,148-mail stratified holdout, and the end-to-end policy reaches 0.4% false positives at 93.3% recall. These are holdout metrics, not a claim about unseen campaigns; see the repo reports for the raw numbers.' },
 ];
 
 export default function Contact() {

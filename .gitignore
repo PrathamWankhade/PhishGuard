@@ -53,4 +53,6 @@ trained_models/
 .env.local
 
 # ─── Reports / exports ────────────────────────
-reports/
+# Real evaluation artifacts in reports/ ARE tracked on purpose (see
+# reports/README.md). Add new generated reports explicitly with `git add`.
+

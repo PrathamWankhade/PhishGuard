@@ -14,7 +14,9 @@ def get_history():
             "id": row.get("id"),
             "sender": row.get("sender", ""),
             "prediction": row.get("prediction", ""),
-            "confidence": row.get("confidence", 0),
+            # Stored column is named `confidence` for historical reasons but
+            # holds the policy risk score; expose it under its honest name.
+            "risk_score": row.get("confidence", 0),
             "risk_level": row.get("risk_level", "low"),
             "reasons": json.loads(row["reasons"]) if row.get("reasons") else [],
             "scan_count": row.get("scan_count", 1),

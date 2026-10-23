@@ -4,15 +4,12 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis
 import useScrollReveal from '../hooks/useScrollReveal.js';
 import useCountUp from '../hooks/useCountUp.js';
 import Icon from '../components/Icon.jsx';
+import { API_BASE_URL } from '../services/api.js';
 
 
-const DASHBOARD_API = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/dashboard`
-  : 'http://127.0.0.1:8000/api/v1/dashboard';
+const DASHBOARD_API = `${API_BASE_URL}/dashboard`;
 
-const HISTORY_API = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/history`
-  : 'http://127.0.0.1:8000/api/v1/history';
+const HISTORY_API = `${API_BASE_URL}/history`;
 
 const FALLBACK_DATA = {
   total_scans: 12847, phishing_count: 3421, safe_count: 8156, suspicious_count: 1270,
@@ -32,20 +29,20 @@ const FALLBACK_DATA = {
     { name: 'Suspicious Attachment', count: 312, severity: 'High' },
   ],
   recent: [
-    { id: 1, sender: 'security@bank-verify.com', prediction: 'Phishing Email', confidence: 97, risk_level: 'high', created_at: '2 min ago' },
-    { id: 2, sender: 'support@amazon-order.net', prediction: 'Phishing Email', confidence: 92, risk_level: 'high', created_at: '15 min ago' },
-    { id: 3, sender: 'hr@company-payroll.com', prediction: 'Suspicious Email', confidence: 78, risk_level: 'medium', created_at: '1 hour ago' },
-    { id: 4, sender: 'newsletter@medium.com', prediction: 'Safe Email', confidence: 99, risk_level: 'low', created_at: '3 hours ago' },
+    { id: 1, sender: 'security@bank-verify.com', prediction: 'Phishing Email', risk_score: 97, risk_level: 'high', created_at: '2 min ago' },
+    { id: 2, sender: 'support@amazon-order.net', prediction: 'Phishing Email', risk_score: 92, risk_level: 'high', created_at: '15 min ago' },
+    { id: 3, sender: 'hr@company-payroll.com', prediction: 'Suspicious Email', risk_score: 78, risk_level: 'medium', created_at: '1 hour ago' },
+    { id: 4, sender: 'newsletter@medium.com', prediction: 'Safe Email', risk_score: 99, risk_level: 'low', created_at: '3 hours ago' },
   ],
   history: [
-    { sender: 'security@bank-verify.com', prediction: 'Phishing Email', confidence: 97, risk_level: 'high', created_at: '2026-06-29' },
-    { sender: 'support@amazon-order.net', prediction: 'Phishing Email', confidence: 92, risk_level: 'high', created_at: '2026-06-29' },
-    { sender: 'hr@company-payroll.com', prediction: 'Suspicious Email', confidence: 78, risk_level: 'medium', created_at: '2026-06-28' },
-    { sender: 'admin@dropbox-share.com', prediction: 'Phishing Email', confidence: 88, risk_level: 'high', created_at: '2026-06-28' },
-    { sender: 'newsletter@medium.com', prediction: 'Safe Email', confidence: 99, risk_level: 'low', created_at: '2026-06-27' },
-    { sender: 'no-reply@linkedin.com', prediction: 'Safe Email', confidence: 96, risk_level: 'low', created_at: '2026-06-27' },
-    { sender: 'billing@netflix-support.cc', prediction: 'Phishing Email', confidence: 94, risk_level: 'high', created_at: '2026-06-26' },
-    { sender: 'team@figma-notification.com', prediction: 'Safe Email', confidence: 98, risk_level: 'low', created_at: '2026-06-26' },
+    { sender: 'security@bank-verify.com', prediction: 'Phishing Email', risk_score: 97, risk_level: 'high', created_at: '2026-06-29' },
+    { sender: 'support@amazon-order.net', prediction: 'Phishing Email', risk_score: 92, risk_level: 'high', created_at: '2026-06-29' },
+    { sender: 'hr@company-payroll.com', prediction: 'Suspicious Email', risk_score: 78, risk_level: 'medium', created_at: '2026-06-28' },
+    { sender: 'admin@dropbox-share.com', prediction: 'Phishing Email', risk_score: 88, risk_level: 'high', created_at: '2026-06-28' },
+    { sender: 'newsletter@medium.com', prediction: 'Safe Email', risk_score: 99, risk_level: 'low', created_at: '2026-06-27' },
+    { sender: 'no-reply@linkedin.com', prediction: 'Safe Email', risk_score: 96, risk_level: 'low', created_at: '2026-06-27' },
+    { sender: 'billing@netflix-support.cc', prediction: 'Phishing Email', risk_score: 94, risk_level: 'high', created_at: '2026-06-26' },
+    { sender: 'team@figma-notification.com', prediction: 'Safe Email', risk_score: 98, risk_level: 'low', created_at: '2026-06-26' },
   ],
 };
 
@@ -234,7 +231,7 @@ export default function Dashboard() {
         </div>
         <h1 className="mt-3 text-2xl font-bold text-text-primary md:text-3xl">Security Dashboard</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Monitor phishing detections, scan history, confidence scores, and system performance powered by machine learning.
+          Monitor phishing detections, scan history, risk scores, and system performance powered by machine learning.
         </p>
         {!isLive && (
           <div role="status" className="mt-3 rounded-xl border border-suspicious-500/40 bg-suspicious-50 px-4 py-3">
@@ -345,7 +342,7 @@ export default function Dashboard() {
                 </div>
                 <span className={`mt-2 inline-block rounded-md px-2 py-0.5 text-xs font-semibold ${badgeStyle}`}>{item.prediction}</span>
                 <div className="mt-3 flex items-center justify-between text-xs text-text-disabled">
-                  <span>{item.confidence}% confidence</span>
+                  <span>{item.risk_score}% risk</span>
                   <span>{item.created_at}</span>
                 </div>
               </div>
@@ -401,7 +398,7 @@ export default function Dashboard() {
                 <tr className="border-b border-surface-200 bg-surface-50 text-xs font-semibold uppercase tracking-wider text-text-disabled">
                   <th className="group cursor-pointer px-5 py-4 select-none" onClick={() => toggleSort('sender')}>Sender <SortIcon columnKey="sender" /></th>
                   <th className="group cursor-pointer px-5 py-4 select-none" onClick={() => toggleSort('prediction')}>Prediction <SortIcon columnKey="prediction" /></th>
-                  <th className="group cursor-pointer px-5 py-4 select-none" onClick={() => toggleSort('confidence')}>Confidence <SortIcon columnKey="confidence" /></th>
+                  <th className="group cursor-pointer px-5 py-4 select-none" onClick={() => toggleSort('risk_score')}>Risk score <SortIcon columnKey="risk_score" /></th>
                   <th className="group cursor-pointer px-5 py-4 select-none" onClick={() => toggleSort('risk_level')}>Risk <SortIcon columnKey="risk_level" /></th>
                   <th className="group cursor-pointer px-5 py-4 select-none" onClick={() => toggleSort('created_at')}>Date <SortIcon columnKey="created_at" /></th>
                 </tr>
@@ -432,7 +429,7 @@ export default function Dashboard() {
                           {item.prediction}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 font-semibold text-primary-500">{item.confidence}%</td>
+                      <td className="px-5 py-3.5 font-semibold text-primary-500">{item.risk_score}%</td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-block rounded-md px-2.5 py-0.5 text-xs font-semibold ${item.risk_level === 'high' ? 'bg-danger-50 text-danger-700' : item.risk_level === 'medium' ? 'bg-suspicious-50 text-suspicious-700' : 'bg-safe-50 text-safe-700'}`}>
                           {item.risk_level}
