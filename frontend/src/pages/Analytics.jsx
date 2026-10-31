@@ -1,5 +1,3 @@
-import React from 'react';
-
 const threatSignals = [
   ['Urgent language', 'High', 'Account suspension, immediate action, limited time, expires'],
   ['Credential request', 'Critical', 'Password, OTP, banking details, login credentials'],

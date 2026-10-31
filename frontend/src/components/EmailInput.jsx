@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, forwardRef } from 'react';
+import { useEffect, useRef, forwardRef } from 'react';
 import Icon from '../components/Icon.jsx';
 
 const EmailInput = forwardRef(({ value, sender, onEmailChange, onSenderChange, onScan, loading }, ref) => {

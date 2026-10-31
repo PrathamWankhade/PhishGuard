@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function About() {
   return (
     <div className="mx-auto max-w-7xl animate-fade-in-up px-4 py-16 md:px-6">

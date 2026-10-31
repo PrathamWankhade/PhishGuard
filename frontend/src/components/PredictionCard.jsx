@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import Icon from './Icon.jsx';
 
 const riskStyles = {
@@ -32,6 +32,22 @@ const riskStyles = {
 };
 
 export default function PredictionCard({ result, onRescan, onReport }) {
+  // Declared before the `!result` early return below: hooks must run in the
+  // same order on every render. Sitting after that return made this hook
+  // conditional (skipped while result was null, called once it was set),
+  // which violates the Rules of Hooks and can corrupt hook state.
+  const copyResult = useCallback(() => {
+    if (!result) return;
+    const text = [
+      `Verdict: ${result.label}`,
+      `Risk Score: ${result.risk_score}%`,
+      `Model P(phishing): ${result.phishing_probability != null ? (result.phishing_probability * 100).toFixed(1) : 'N/A'}%`,
+      `Risk Level: ${result.risk_level}`,
+      `Evidence: ${(result.signals || result.reasons || []).join('; ') || 'none'}`,
+    ].join('\n');
+    navigator.clipboard.writeText(text).then(() => {});
+  }, [result]);
+
   if (!result) {
     return (
       <div className="animate-scale-in rounded-2xl border border-surface-300 bg-white p-8 text-center shadow-card">
@@ -49,17 +65,6 @@ export default function PredictionCard({ result, onRescan, onReport }) {
   }
 
   const style = riskStyles[result.risk_level] || riskStyles.medium;
-
-  const copyResult = useCallback(() => {
-    const text = [
-      `Verdict: ${result.label}`,
-      `Risk Score: ${result.risk_score}%`,
-      `Model P(phishing): ${result.phishing_probability != null ? (result.phishing_probability * 100).toFixed(1) : 'N/A'}%`,
-      `Risk Level: ${result.risk_level}`,
-      `Evidence: ${(result.signals || result.reasons || []).join('; ') || 'none'}`,
-    ].join('\n');
-    navigator.clipboard.writeText(text).then(() => {});
-  }, [result]);
 
   return (
     <div className={`animate-scale-in rounded-2xl border-2 ${style.border} bg-white p-6 shadow-card`}>

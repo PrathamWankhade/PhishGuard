@@ -104,6 +104,7 @@ uvicorn backend.app.main:app --reload
 
 # Frontend — http://localhost:3000
 npm install
+npm run lint                      # ESLint: undefined components, hook misuse
 npm run dev
 
 # Tests (full suite needs trained_models/; CI runs the rest)

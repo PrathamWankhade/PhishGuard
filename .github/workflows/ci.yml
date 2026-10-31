@@ -28,6 +28,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Lint (catches undefined components / hook misuse)
+        # `vite build` bundles without checking identifiers or hook order, so
+        # bugs like a missing component import or a hook after an early return
+        # ship silently and only fail in the browser at runtime.
+        run: npm run lint
       - run: npm run build
 
   integration:

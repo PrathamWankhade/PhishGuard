@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import Icon from './Icon.jsx';
 
 const footerLinks = {
@@ -18,7 +18,6 @@ const footerLinks = {
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
-  const { pathname } = useLocation();
 
   function handleSubscribe(e) {
     e.preventDefault();

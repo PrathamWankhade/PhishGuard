@@ -47,7 +47,6 @@ const FALLBACK_DATA = {
 };
 
 const PIE_COLORS = { phishing: '#d32f2f', suspicious: '#ff8f00', safe: '#43a047' };
-const SEVERITY_COLORS = { Critical: 'bg-danger-500', High: 'bg-suspicious-500', Medium: 'bg-suspicious-50 text-suspicious-700 border border-suspicious-500/30', Low: 'bg-surface-200 text-text-secondary' };
 
 const chartTooltipStyle = {
   backgroundColor: '#fff',
@@ -209,7 +208,6 @@ export default function Dashboard() {
   ];
 
   const trend = data.trend || {};
-  const daily = data.daily_trend || [];
   const signals = data.top_signals || [];
   const recent = data.recent || [];
 
@@ -306,10 +304,10 @@ export default function Dashboard() {
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-surface-50 p-3">
               {[
-                { label: 'Critical', count: signals.filter(s => s.severity === 'Critical').reduce((a, b) => a + b.count, 0), color: 'bg-danger-500' },
-                { label: 'High', count: signals.filter(s => s.severity === 'High').reduce((a, b) => a + b.count, 0), color: 'bg-suspicious-500' },
-                { label: 'Total', count: signals.reduce((a, b) => a + b.count, 0), color: 'bg-primary-500' },
-              ].map(({ label, count, color }) => (
+                { label: 'Critical', count: signals.filter(s => s.severity === 'Critical').reduce((a, b) => a + b.count, 0) },
+                { label: 'High', count: signals.filter(s => s.severity === 'High').reduce((a, b) => a + b.count, 0) },
+                { label: 'Total', count: signals.reduce((a, b) => a + b.count, 0) },
+              ].map(({ label, count }) => (
                 <div key={label} className="text-center">
                   <p className="text-base font-bold text-text-primary">{count.toLocaleString()}</p>
                   <p className="text-xs text-text-disabled">{label}</p>

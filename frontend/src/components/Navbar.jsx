@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import Icon from './Icon.jsx';
 import { API_BASE_URL } from '../services/api.js';
@@ -38,12 +38,17 @@ export default function Navbar() {
       const threats = data.filter(
         (item) => item.prediction === 'Phishing Email' || item.prediction === 'Suspicious Email'
       );
-      const newIds = new Set(unreadIds);
-      threats.forEach((item) => {
-        const ts = new Date(item.created_at).getTime();
-        if (ts > lastSeenRef.current) newIds.add(item.id);
+      // Functional update: the callback is memoized with [] and is called from
+      // a 30s interval, so reading `unreadIds` directly would capture the
+      // empty set from mount and wipe previously-unread ids on every poll.
+      setUnreadIds((prev) => {
+        const next = new Set(prev);
+        threats.forEach((item) => {
+          const ts = new Date(item.created_at).getTime();
+          if (ts > lastSeenRef.current) next.add(item.id);
+        });
+        return next;
       });
-      setUnreadIds(newIds);
       setNotifications(threats);
     } catch {
       /* silently fail */

@@ -1,5 +1,3 @@
-import React from 'react';
-
 /*
  * Professional, consistent icon system for PhishGuard.
  *

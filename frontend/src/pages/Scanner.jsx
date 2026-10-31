@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '../components/Icon.jsx';
 import EmailInput from '../components/EmailInput.jsx';
 import PredictionCard from '../components/PredictionCard.jsx';

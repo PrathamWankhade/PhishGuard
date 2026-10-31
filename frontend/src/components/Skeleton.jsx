@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function SkeletonCard({ className = '' }) {
   return (
     <div className={`rounded-2xl border border-surface-300 bg-white p-6 ${className}`}>
