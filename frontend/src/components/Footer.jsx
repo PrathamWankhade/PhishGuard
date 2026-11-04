@@ -7,11 +7,12 @@ const footerLinks = {
     { to: '/', label: 'Home' },
     { to: '/scanner', label: 'Email Scanner' },
     { to: '/dashboard', label: 'Dashboard' },
+    { to: '/history', label: 'Scan History' },
     { to: '/analytics', label: 'Threat Signals' },
   ],
   Resources: [
+    { to: '/about', label: 'About' },
     { to: '/contact', label: 'Contact' },
-    { to: '/', label: 'Privacy Policy' },
   ],
 };
 

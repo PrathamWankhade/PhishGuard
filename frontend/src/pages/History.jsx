@@ -131,7 +131,7 @@ export default function History() {
             {records.length === 0 ? 'No scans performed yet' : 'No results match your filters'}
           </p>
           <p className="mt-1 text-sm text-text-disabled">
-            {records.length === 0 ? 'Scan an email on the Home page to see results here.' : 'Try adjusting your search or filter.'}
+            {records.length === 0 ? 'Scan an email on the Scanner page to see results here.' : 'Try adjusting your search or filter.'}
           </p>
         </div>
       ) : (

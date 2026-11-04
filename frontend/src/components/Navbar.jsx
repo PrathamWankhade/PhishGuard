@@ -9,6 +9,7 @@ const links = [
   { to: '/', label: 'Home', icon: 'shield' },
   { to: '/scanner', label: 'Scanner', icon: 'scan' },
   { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/history', label: 'History', icon: 'history' },
   { to: '/analytics', label: 'Threat Signals', icon: 'analytics' },
   { to: '/contact', label: 'Contact', icon: 'contact' },
 ];
@@ -206,11 +207,11 @@ export default function Navbar() {
                 </div>
                 <div className="border-t border-surface-200 px-4 py-2.5 text-center">
                   <NavLink
-                    to="/dashboard"
+                    to="/history"
                     onClick={() => setNotifOpen(false)}
                     className="text-xs font-medium text-text-disabled hover:text-text-secondary anim-fast no-underline"
                   >
-                    View all in Dashboard
+                    View all scan history
                   </NavLink>
                 </div>
               </div>

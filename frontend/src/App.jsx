@@ -10,6 +10,8 @@ const Scanner = lazy(() => import('./pages/Scanner.jsx'));
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
 const Analytics = lazy(() => import('./pages/Analytics.jsx'));
 const Contact = lazy(() => import('./pages/Contact.jsx'));
+const About = lazy(() => import('./pages/About.jsx'));
+const History = lazy(() => import('./pages/History.jsx'));
 
 function PageLoader() {
   return (
@@ -46,6 +48,8 @@ export default function App() {
               <Route path="/scanner" element={<Scanner />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/analytics" element={<Analytics />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
