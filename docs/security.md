@@ -24,13 +24,19 @@ layered accordingly.
 - Sensitive routes (`/history`, `/dashboard`, `/analytics/*`, `/feedback*`)
   accept an API-key gate via `Depends(require_api_key)`. Set `API_KEYS` in
   production; without it the server runs in open dev mode.
+- Each API key is a distinct tenant: scan history, dashboard KPIs and
+  analytics are scoped to the caller's key (owner column on `scan_history`,
+  derived as a short hash of the validated key). Dev mode (no keys) keeps
+  the previous single-tenant behaviour. `/predict` accepts an optional key
+  so scans made with a key are isolated to that operator; unauthed scans
+  stay in the shared tenant. Feedback rows are gated but aggregated.
 - The SPA's `VITE_API_KEY` is public by construction (bundled JS). Treat it
   as a shared-client convenience for single-operator deployments, never as a
   user-authentication boundary. To limit blast radius, the key is attached
   only to gated read routes (history/dashboard); the open `/predict` and
-  `/upload` endpoints never receive it. Multi-user production needs session
-  auth or a backend-for-frontend plus per-user history isolation (not
-  implemented).
+  `/upload` endpoints never receive it. Multi-user production with real
+  per-user accounts still needs session auth or a backend-for-frontend on
+  top of this isolation.
 - Per-user history isolation is **not yet implemented** — do not store
   multiple users' mail without adding authentication + tenant-scoped queries.
 - External AI processing sends up to 2,000 characters per scan to OpenRouter.

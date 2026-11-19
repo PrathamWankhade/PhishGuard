@@ -2,12 +2,13 @@ import hashlib
 import json
 import re
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 from pydantic import BaseModel
 
 from backend.app.services.openrouter_explainer import generate_ai_explanation
 from backend.app.services.phishing_detector import detect_phishing
 from backend.app.database.db import get_connection
+from backend.app.middleware.auth import optional_owner
 
 router = APIRouter()
 
@@ -28,7 +29,7 @@ def sanitize_text(text: str) -> str:
 
 
 @router.post("/predict")
-def predict_email(request: PredictionRequest):
+def predict_email(request: PredictionRequest, x_api_key: str | None = Header(default=None)):
     from fastapi import HTTPException
 
     safe_text = sanitize_text(request.email_text)
@@ -71,26 +72,37 @@ def predict_email(request: PredictionRequest):
 
     result["email_hash"] = email_hash
 
+    owner = optional_owner(x_api_key)
+
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, scan_count FROM scan_history WHERE email_hash = ?", (email_hash,))
+    cursor.execute(
+        "SELECT id, scan_count FROM scan_history WHERE email_hash = ? AND owner = ?",
+        (email_hash, owner),
+    )
     existing = cursor.fetchone()
 
     reasons_json = json.dumps(deterministic_reasons)
 
     if existing:
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE scan_history
             SET sender=?, prediction=?, confidence=?, risk_level=?, reasons=?,
                 scan_count=scan_count+1, created_at=CURRENT_TIMESTAMP
-            WHERE email_hash=?
-        """, (safe_sender, result["label"], result["risk_score"], result["risk_level"], reasons_json, email_hash))
+            WHERE email_hash=? AND owner=?
+            """,
+            (safe_sender, result["label"], result["risk_score"], result["risk_level"], reasons_json, email_hash, owner),
+        )
     else:
-        cursor.execute("""
-            INSERT INTO scan_history (email_hash, sender, email_text, prediction, confidence, risk_level, reasons, scan_count)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-        """, (email_hash, safe_sender, safe_text, result["label"], result["risk_score"], result["risk_level"], reasons_json))
+        cursor.execute(
+            """
+            INSERT INTO scan_history (owner, email_hash, sender, email_text, prediction, confidence, risk_level, reasons, scan_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+            """,
+            (owner, email_hash, safe_sender, safe_text, result["label"], result["risk_score"], result["risk_level"], reasons_json),
+        )
 
     conn.commit()
     conn.close()

@@ -1,20 +1,30 @@
 from backend.app.database.db import get_connection
 
 
-def get_summary() -> dict:
+def get_summary(owner: str = "anonymous") -> dict:
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT COUNT(*) FROM scan_history")
+    cursor.execute(
+        "SELECT COUNT(*) FROM scan_history WHERE owner = ?", (owner,)
+    )
     total = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM scan_history WHERE prediction IN ('Phishing Email', 'Suspicious Email') OR risk_level = 'high'")
+    cursor.execute(
+        "SELECT COUNT(*) FROM scan_history WHERE owner = ? AND (prediction IN ('Phishing Email', 'Suspicious Email') OR risk_level = 'high')",
+        (owner,),
+    )
     phishing = cursor.fetchone()[0]
 
-    cursor.execute("SELECT AVG(confidence) FROM scan_history")
+    cursor.execute(
+        "SELECT AVG(confidence) FROM scan_history WHERE owner = ?", (owner,)
+    )
     avg_conf = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM scan_history WHERE email_text LIKE '%http%'")
+    cursor.execute(
+        "SELECT COUNT(*) FROM scan_history WHERE owner = ? AND email_text LIKE '%http%'",
+        (owner,),
+    )
     urls = cursor.fetchone()[0]
 
     conn.close()

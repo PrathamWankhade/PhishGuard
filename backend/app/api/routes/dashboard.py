@@ -1,40 +1,54 @@
 from fastapi import APIRouter, Depends
-from backend.app.database.models import (
-    get_scan_history,
-)
+
+from backend.app.database.models import get_scan_history
 from backend.app.middleware.auth import require_api_key
 
 router = APIRouter()
 
 
-@router.get("/dashboard", dependencies=[Depends(require_api_key)])
-def dashboard():
+@router.get("/dashboard")
+def dashboard(owner: str = Depends(require_api_key)):
     from backend.app.database.db import get_connection
 
     conn = get_connection()
     cur = conn.cursor()
-    # Unique-email counts (one row per canonical email).
-    cur.execute("SELECT COUNT(*) FROM scan_history")
+    # Unique-email counts (one row per canonical email), scoped to caller.
+    cur.execute("SELECT COUNT(*) FROM scan_history WHERE owner = ?", (owner,))
     unique_emails = cur.fetchone()[0]
     # Scan-event totals (rescans increment scan_count on the same row).
-    cur.execute("SELECT COALESCE(SUM(scan_count), 0) FROM scan_history")
+    cur.execute(
+        "SELECT COALESCE(SUM(scan_count), 0) FROM scan_history WHERE owner = ?", (owner,)
+    )
     total_scan_events = cur.fetchone()[0]
-    cur.execute("SELECT COUNT(*) FROM scan_history WHERE prediction = 'Phishing Email'")
+    cur.execute(
+        "SELECT COUNT(*) FROM scan_history WHERE owner = ? AND prediction = 'Phishing Email'",
+        (owner,),
+    )
     phishing = cur.fetchone()[0]
-    cur.execute("SELECT COUNT(*) FROM scan_history WHERE prediction = 'Suspicious Email'")
+    cur.execute(
+        "SELECT COUNT(*) FROM scan_history WHERE owner = ? AND prediction = 'Suspicious Email'",
+        (owner,),
+    )
     suspicious = cur.fetchone()[0]
-    cur.execute("SELECT COUNT(*) FROM scan_history WHERE prediction = 'Safe Email'")
+    cur.execute(
+        "SELECT COUNT(*) FROM scan_history WHERE owner = ? AND prediction = 'Safe Email'", (owner,)
+    )
     safe = cur.fetchone()[0]
-    cur.execute("SELECT AVG(confidence) FROM scan_history")
+    cur.execute(
+        "SELECT AVG(confidence) FROM scan_history WHERE owner = ?", (owner,)
+    )
     avg_conf = cur.fetchone()[0]
     levels = {"high": 0, "medium": 0, "low": 0}
-    cur.execute("SELECT risk_level, COUNT(*) FROM scan_history GROUP BY risk_level")
+    cur.execute(
+        "SELECT risk_level, COUNT(*) FROM scan_history WHERE owner = ? GROUP BY risk_level",
+        (owner,),
+    )
     for risk, count in cur.fetchall():
         if risk in levels:
             levels[risk] = count
     conn.close()
 
-    history = get_scan_history()
+    history = get_scan_history(owner=owner)
     total_scans = len(history)
 
     return {
