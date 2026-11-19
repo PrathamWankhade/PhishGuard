@@ -200,12 +200,12 @@ evidence model, explicit unavailable states, explanation resilience,
 Pipeline-CV training, full-text dataset dedup, MIME parsing, upload
 validation, dashboard semantics, Docker readiness, API-key gating, auth/BEC
 signals, header forwarding, feedback loop, CI, per-user history isolation
-(scoped by API key; dev mode stays single-tenant).
+(scoped by API key; dev mode stays single-tenant), Redis-backed rate
+limiting (optional, in-memory fallback).
 
 **Next:** threshold re-validation on the frozen test set, source-separated
-(unseen-campaign) evaluation with a rebuilt dataset, Redis-backed rate
-limiting, SSRF-safe URL reputation, transformer benchmark on the frozen test
-set.
+(unseen-campaign) evaluation with a rebuilt dataset, SSRF-safe URL
+reputation, transformer benchmark on the frozen test set.
 
 ## Author
 

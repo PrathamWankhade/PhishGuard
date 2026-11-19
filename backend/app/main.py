@@ -22,10 +22,69 @@ MAX_TRACKED_CLIENTS = 5000
 MAX_BODY_BYTES = 200_000
 
 # Stricter quota for expensive inference/upload routes (abuse control on the
-# public scanning surface; gateway/Redis still needed for multi-worker).
+# public scanning surface). Multi-worker deployments should set REDIS_URL so
+# counters are shared across processes; otherwise each worker keeps its own
+# in-memory window (fine for single-process / dev).
 EXPENSIVE_PATHS = ("/api/v1/predict", "/api/v1/upload")
 EXPENSIVE_RATE_LIMIT = 30
 expensive_limit_store: dict = defaultdict(list)
+
+# Optional Redis backend (shared across workers). Imported lazily so the
+# package stays optional: without `redis` installed (or REDIS_URL unset) we
+# fall back to the in-memory stores above, preserving unit-test determinism.
+try:
+    import redis as _redis_mod  # type: ignore
+except Exception:  # pragma: no cover - import guard
+    _redis_mod = None
+
+
+def _redis_client():
+    """Return a (cached) Redis client, or None if Redis is unavailable."""
+    url = os.environ.get("REDIS_URL", "").strip()
+    if not url or _redis_mod is None:
+        return None
+    cached = getattr(_redis_client, "_cached", None)
+    if cached is not _MISSING:
+        return cached
+    try:
+        client = _redis_mod.from_url(url, decode_responses=True, socket_connect_timeout=1)
+        client.ping()
+    except Exception:
+        client = None
+    _redis_client._cached = client
+    return client
+
+
+_MISSING = object()
+_redis_client._cached = _MISSING
+
+
+def _redis_key(bucket: str, client_ip: str) -> str:
+    return f"phishguard:rl:{bucket}:{client_ip}"
+
+
+def _redis_check(client, bucket: str, client_ip: str, limit: int, now: float) -> bool:
+    """Sliding-window check via a Redis sorted set. Returns True if allowed."""
+    key = _redis_key(bucket, client_ip)
+    window_start = now - RATE_LIMIT_WINDOW
+    try:
+        pipe = client.pipeline()
+        pipe.zremrangebyscore(key, 0, window_start)
+        pipe.zcard(key)
+        pipe.zadd(key, {f"{now}": now})
+        pipe.expire(key, RATE_LIMIT_WINDOW + 1)
+        _, count, _, _ = pipe.execute()
+    except Exception:
+        # Redis hiccup: fail open to in-memory semantics by signalling fallback.
+        return None
+    if count >= limit:
+        # Undo the optimistic add we just made.
+        try:
+            client.zrem(key, f"{now}")
+        except Exception:
+            pass
+        return False
+    return True
 
 
 def _bucket_hit(store, key: str, now: float) -> list:
@@ -34,24 +93,55 @@ def _bucket_hit(store, key: str, now: float) -> list:
 
 
 def check_rate_limit(client_ip: str, path: str, now: float | None = None) -> bool:
-    """Return True if the request is allowed, recording it. Unit-testable."""
-    now = now if now is not None else time.time()
-    if path in EXPENSIVE_PATHS:
-        bucket = _bucket_hit(expensive_limit_store, client_ip, now)
-        if len(bucket) >= EXPENSIVE_RATE_LIMIT:
+    """Return True if the request is allowed, recording it. Unit-testable.
+
+    When ``now`` is given explicitly (unit tests) the in-memory store is used
+    so results stay deterministic. Otherwise, if REDIS_URL is configured and
+    reachable, a shared Redis sliding window is used; on any Redis failure we
+    fall back to the in-memory store for that request.
+    """
+    expensive = path in EXPENSIVE_PATHS
+    # Explicit `now` => deterministic in-memory path (unit tests).
+    use_redis = now is None
+    redis = _redis_client() if use_redis else None
+
+    if now is None:
+        now = time.time()
+
+    # Expensive bucket first (stricter quota).
+    if expensive:
+        if redis is not None:
+            res = _redis_check(redis, "expensive", client_ip, EXPENSIVE_RATE_LIMIT, now)
+            if res is None:
+                # fallback
+                redis = None
+            elif not res:
+                return False
+        if redis is None:
+            bucket = _bucket_hit(expensive_limit_store, client_ip, now)
+            if len(bucket) >= EXPENSIVE_RATE_LIMIT:
+                expensive_limit_store[client_ip] = bucket
+                return False
+            bucket.append(now)
             expensive_limit_store[client_ip] = bucket
+
+    # General bucket.
+    if redis is not None:
+        res = _redis_check(redis, "general", client_ip, RATE_LIMIT, now)
+        if res is None:
+            redis = None
+        elif not res:
+            return False
+    if redis is None:
+        bucket = _bucket_hit(rate_limit_store, client_ip, now)
+        if len(bucket) >= RATE_LIMIT:
+            rate_limit_store[client_ip] = bucket
             return False
         bucket.append(now)
-        expensive_limit_store[client_ip] = bucket
-    bucket = _bucket_hit(rate_limit_store, client_ip, now)
-    if len(bucket) >= RATE_LIMIT:
         rate_limit_store[client_ip] = bucket
-        return False
-    bucket.append(now)
-    rate_limit_store[client_ip] = bucket
-    for store in (rate_limit_store, expensive_limit_store):
-        if len(store) > MAX_TRACKED_CLIENTS:
-            store.pop(next(iter(store)), None)
+        for store in (rate_limit_store, expensive_limit_store):
+            if len(store) > MAX_TRACKED_CLIENTS:
+                store.pop(next(iter(store)), None)
     return True
 
 # Cached readiness: artifacts are validated once (or on TTL expiry), not
