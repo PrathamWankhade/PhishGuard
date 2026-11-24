@@ -18,15 +18,40 @@ training). The published numbers and their protocol are documented in
 ## Regenerating
 
 ```bash
-python ai-engine/training/build_final_dataset.py   # writes datasets/final/
+python ai-engine/training/build_final_dataset.py   # writes datasets/final/ (backs up the old file)
 python ai-engine/training/train_model.py           # writes trained_models/ + metadata
 python ai-engine/training/evaluate_model.py        # writes reports/evaluation_report.json
 ```
 
+`build_final_dataset.py` refuses to clobber silently: an existing
+`final_emails.csv` is copied to `final_emails.csv.<timestamp>.bak` first. It
+also prints a warning, because the dataset and `trained_models/` are a matched
+pair — rebuilding one without re-running `train_model.py` makes
+`evaluate_model.py` score the model on rows it trained on.
+
 ## Not yet available
 
 `source_split_eval.json` (group-disjoint, unseen-campaign estimate) is a
-required release artifact that is **not generated yet**: it needs a dataset
-build that carries the `source` column. Until it exists, the reported metrics
-are random-split holdout numbers and must be described that way — do not
-present them as unseen-campaign performance.
+required release artifact that is **not generated yet**. The blocker is
+compute, not code:
+
+- `ai-engine/training/source_split_eval.py` implements the protocol and is
+  covered by `tests/test_source_split.py` (helpers plus an end-to-end run on a
+  synthetic multi-source corpus), so the wiring is CI-proven.
+- `build_final_dataset.py` already emits `source`, `sources` and `group_id`,
+  but the committed `datasets/final/final_emails.csv` was built before those
+  columns existed.
+- Rebuilding it requires re-running `train_model.py` and `evaluate_model.py`
+  to keep the dataset and `trained_models/` a matched pair, and then running
+  the source-split eval. That is a multi-GB, multi-hour job on this machine.
+
+Until it exists, the reported metrics are random-split holdout numbers and
+must be described that way — do not present them as unseen-campaign
+performance. Run on a machine with room:
+
+```bash
+python ai-engine/training/build_final_dataset.py   # backs up the old file
+python ai-engine/training/train_model.py
+python ai-engine/training/evaluate_model.py
+python ai-engine/training/source_split_eval.py     # writes reports/source_split_eval.json
+```

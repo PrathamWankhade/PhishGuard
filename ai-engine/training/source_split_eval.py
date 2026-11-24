@@ -26,8 +26,12 @@ from sklearn.pipeline import Pipeline
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-DATASET_PATH = os.path.join(PROJECT_ROOT, "datasets", "final", "final_emails.csv")
-REPORT_PATH = os.path.join(PROJECT_ROOT, "reports", "source_split_eval.json")
+# Paths are overridable so the protocol can run against a versioned dataset or
+# a synthetic fixture without touching the production dataset/report.
+DEFAULT_DATASET_PATH = os.path.join(PROJECT_ROOT, "datasets", "final", "final_emails.csv")
+DEFAULT_REPORT_PATH = os.path.join(PROJECT_ROOT, "reports", "source_split_eval.json")
+DATASET_PATH = os.environ.get("SOURCE_SPLIT_DATASET", DEFAULT_DATASET_PATH)
+REPORT_PATH = os.environ.get("SOURCE_SPLIT_REPORT", DEFAULT_REPORT_PATH)
 
 HOLDOUT_FRAC = 0.2
 SOURCE_SEED = 7
@@ -102,8 +106,13 @@ def check_binary(df: pd.DataFrame, name: str) -> None:
         raise ValueError(f"{name} lacks both classes: {sorted(labels)} (n={len(df)})")
 
 
-def main() -> None:
-    df = pd.read_csv(DATASET_PATH)
+def run_eval(dataset_path: str | None = None, report_path: str | None = None) -> dict:
+    """Run the source-separated protocol. Paths default to the module-level
+    (env-overridable) constants so callers can point it at any dataset."""
+    dataset_path = dataset_path or DATASET_PATH
+    report_path = report_path or REPORT_PATH
+
+    df = pd.read_csv(dataset_path)
     if "source" not in df.columns:
         raise SystemExit(
             "Dataset has no 'source' column. Rebuild with "
@@ -157,11 +166,18 @@ def main() -> None:
         "note": "Holdout is untouched by threshold selection; re-validate policy thresholds here, do not tune them here.",
         "metrics": metrics_for(test_df["label"], pipeline.predict(test_df["email_text"]), proba),
     }
-    os.makedirs(os.path.dirname(REPORT_PATH), exist_ok=True)
-    with open(REPORT_PATH, "w", encoding="utf-8") as f:
+    out_dir = os.path.dirname(report_path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    with open(report_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
     print(json.dumps(report, indent=2))
-    print(f"Saved: {REPORT_PATH}")
+    print(f"Saved: {report_path}")
+    return report
+
+
+def main() -> None:
+    run_eval()
 
 
 if __name__ == "__main__":

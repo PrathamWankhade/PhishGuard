@@ -16,8 +16,20 @@ The 20% holdout is stratified — meaning the ratio of phishing to legitimate em
 
 ## Regeneration
 
-```bash
-python ai-engine/training/build_final_dataset.py --split
+There is no `--split` flag on `build_final_dataset.py` (and never was). The
+holdout is produced by `ai-engine/training/train_model.py`, which splits the
+dataset inline:
+
+```python
+train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 ```
 
-Note: The full dataset must exist at `datasets/final/final_emails.csv` before running the split.
+Because the split is seeded, re-running it on the same `final_emails.csv`
+reproduces this file exactly. Two consequences worth knowing:
+
+- Rebuild `final_emails.csv` and the split moves, so this file (and any
+  metrics reported against it) becomes stale until train_model.py is re-run.
+  The dataset and `trained_models/` are a matched pair.
+- This file has only `email_text,label` — no `source` column — so it cannot
+  support unseen-campaign evaluation. Use
+  `ai-engine/training/source_split_eval.py`, which splits by source instead.

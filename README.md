@@ -201,11 +201,13 @@ Pipeline-CV training, full-text dataset dedup, MIME parsing, upload
 validation, dashboard semantics, Docker readiness, API-key gating, auth/BEC
 signals, header forwarding, feedback loop, CI, per-user history isolation
 (scoped by API key; dev mode stays single-tenant), Redis-backed rate
-limiting (optional, in-memory fallback).
+limiting (optional, in-memory fallback), non-destructive dataset builds with
+source/group provenance, CI coverage of the source-split evaluation protocol.
 
 **Next:** threshold re-validation on the frozen test set, source-separated
-(unseen-campaign) evaluation with a rebuilt dataset, SSRF-safe URL
-reputation, transformer benchmark on the frozen test set.
+(unseen-campaign) evaluation (protocol written and CI-tested; the real run
+needs a dataset rebuild + re-train and a machine with the RAM for it),
+SSRF-safe URL reputation, transformer benchmark on the frozen test set.
 
 ## Author
 
