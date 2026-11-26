@@ -15,6 +15,9 @@ evaluation therefore reports the full suite:
 | False-positive rate | Legitimate mail flagged | As low as tolerable |
 | False-negative rate | Phishes missed | As low as tolerable |
 | Log loss / Brier score | Do probabilities match outcomes? | Required before showing `%` |
+| ROC-AUC / PR-AUC | Ranking quality independent of threshold | PR-AUC matters more on the imbalanced phishing class |
+| Expected calibration error | Binned gap between confidence and accuracy | Low; large ECE means the `%` is overselling |
+| Latency p50/p95 | Per-request vectorize + score cost | Operational budget, excludes model load and LLM |
 | CV F1-macro | Stability across folds | Should match holdout closely |
 
 ## Protocol
@@ -35,7 +38,12 @@ evaluation therefore reports the full suite:
    threshold selection.
 4. **Frozen test data** — the final test split is never used for model or
    threshold selection. Thresholds (75/45) must be re-validated here, not
-   tuned here.
+   tuned here. `ai-engine/training/threshold_analysis.py` does that work: it
+   sweeps operating points over both the raw model probability and the shipped
+   policy risk score (they are not interchangeable — a threshold chosen on one
+   does not transfer to the other), reports the measured shipped policy point,
+   and offers target-recall / min-precision selection. It never edits the
+   thresholds; it only recommends.
 5. **Calibration** — log loss and Brier score are printed by both training
    and evaluation scripts. A `%` shown in the UI is only a probability claim
    if calibration supports it; otherwise it is a policy score (see the

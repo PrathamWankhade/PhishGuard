@@ -7,7 +7,7 @@ been generated yet and must not be cited.
 
 | File | Produced by | What it contains |
 |---|---|---|
-| `evaluation_report.json` | `ai-engine/training/evaluate_model.py` | Test accuracy, per-class precision/recall/F1, confusion matrix, log loss, Brier score on the 39,148-mail stratified holdout |
+| `evaluation_report.json` | `ai-engine/training/evaluate_model.py` | Test accuracy, per-class precision/recall/F1, confusion matrix, log loss, Brier score, ROC-AUC, PR-AUC, expected calibration error and p50/p95 latency on the 39,148-mail stratified holdout |
 | `policy_validation.json` | policy validation pass over the same holdout | End-to-end verdict rates at thresholds 75/45 (text-only), i.e. what the *product* decides, not the raw model |
 
 Model identity, split strategy, sklearn version and dataset row counts live in
@@ -18,10 +18,20 @@ training). The published numbers and their protocol are documented in
 ## Regenerating
 
 ```bash
-python ai-engine/training/build_final_dataset.py   # writes datasets/final/ (backs up the old file)
-python ai-engine/training/train_model.py           # writes trained_models/ + metadata
-python ai-engine/training/evaluate_model.py        # writes reports/evaluation_report.json
+python ai-engine/training/build_final_dataset.py     # writes datasets/final/ (backs up the old file)
+python ai-engine/training/train_model.py             # writes trained_models/ + metadata
+python ai-engine/training/evaluate_model.py          # writes reports/evaluation_report.json
+python ai-engine/training/threshold_analysis.py      # writes reports/threshold_analysis.json
 ```
+
+## Committed report vintage
+
+The committed `evaluation_report.json` predates the ranking/calibration/latency
+fields and has only the original keys. It is **not** regenerated yet, because
+regenerating means re-running `train_model.py` and `evaluate_model.py` on a
+machine with the RAM for a 200-tree forest over 50k TF-IDF features. Until
+then, treat the committed numbers as the previous-revision metrics and do not
+cite ROC-AUC, PR-AUC, ECE or latency as measured values.
 
 `build_final_dataset.py` refuses to clobber silently: an existing
 `final_emails.csv` is copied to `final_emails.csv.<timestamp>.bak` first. It

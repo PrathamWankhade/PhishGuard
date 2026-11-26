@@ -26,6 +26,40 @@ RISK_HIGH_THRESHOLD = 75
 RISK_MEDIUM_THRESHOLD = 45
 
 
+def compute_risk_score(
+    phishing_probability: float,
+    url_analysis: dict,
+    sender_risk: float,
+    auth_risk: float,
+    bec_risk: float,
+) -> float:
+    """Authoritative implementation of the policy risk formula.
+
+        risk = min(99, round(phishing_probability * 100 + url_risk
+                             + sender_risk + evidence_risk, 2))
+
+    - model term uses the PHISHING-CLASS probability, so confident-legitimate
+      mail contributes ~0 rather than ~100 (max-class confidence would invert
+      this).
+    - url_risk is capped at 20 from the UNIQUE suspicious-URL count.
+    - sender_risk is passed in from the sender analyser (capped at 30 there).
+    - evidence_risk is capped at 10 across auth + BEC combined, so new
+      channels can tip borderline cases but never fabricate certainty alone.
+
+    Every consumer must call this rather than re-deriving the formula:
+    scripts/validate_policy.py used to inline its own copy, which meant a
+    policy change would silently leave the validated report describing a
+    formula that is no longer shipped.
+    """
+    model_risk = float(phishing_probability) * 100
+    suspicious_count = url_analysis.get(
+        "suspicious_count", len(url_analysis.get("suspicious_urls", []))
+    )
+    url_risk = min(20, suspicious_count * 4)
+    evidence_risk = min(10, float(auth_risk) + float(bec_risk))
+    return min(99, round(model_risk + url_risk + float(sender_risk) + evidence_risk, 2))
+
+
 def classify_risk(risk_score: float) -> str:
     if risk_score >= RISK_HIGH_THRESHOLD:
         return "high"
@@ -68,17 +102,12 @@ def detect_phishing(
     if not 0.0 <= phishing_probability <= 1.0:
         raise RuntimeError(f"Invalid phishing_probability {phishing_probability}; refusing to score.")
 
-    # Combined policy score. Model risk comes from the PHISHING-CLASS
-    # probability: confident-legitimate mail contributes ~0, not ~100.
-    # Unique suspicious-URL count (not rule-hit count).
-    model_risk = phishing_probability * 100
-    suspicious_count = url_analysis.get("suspicious_count", len(url_analysis.get("suspicious_urls", [])))
-    url_risk = min(20, suspicious_count * 4)
-    sender_risk = sender_analysis["risk"]
-    # New evidence channels are bounded so they can tip borderline cases but
-    # never fabricate certainty on their own.
-    evidence_risk = min(10, auth_analysis["risk"] + bec_analysis["risk"])
-    risk_score = min(99, round(model_risk + url_risk + sender_risk + evidence_risk, 2))
+    # Combined policy score. Single authoritative formula — see
+    # compute_risk_score, which the validation scripts also call.
+    risk_score = compute_risk_score(
+        phishing_probability, url_analysis, sender_analysis["risk"],
+        auth_analysis["risk"], bec_analysis["risk"],
+    )
 
     risk_level = classify_risk(risk_score)
     label = verdict_for_risk(risk_level)

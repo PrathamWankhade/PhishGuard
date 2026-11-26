@@ -187,7 +187,7 @@ backend/app/
   services/            # phishing_detector (decision engine), url/sender/auth/bec
   utils/email_parser.py# standards-aware MIME parsing
   middleware/auth.py   # optional API-key gate
-ai-engine/training/    # build_final_dataset, train_model, evaluate, source_split_eval
+ai-engine/training/    # build_final_dataset, train_model, evaluate, threshold_analysis, source_split_eval
 tests/                 # phase1/2/3 contract tests + unit suites (model-marked)
 scripts/               # verify_setup.py (executable onboarding check)
 docker/ + compose      # backend image, SPA + Nginx, volumes, healthchecks
@@ -202,12 +202,15 @@ validation, dashboard semantics, Docker readiness, API-key gating, auth/BEC
 signals, header forwarding, feedback loop, CI, per-user history isolation
 (scoped by API key; dev mode stays single-tenant), Redis-backed rate
 limiting (optional, in-memory fallback), non-destructive dataset builds with
-source/group provenance, CI coverage of the source-split evaluation protocol.
+source/group provenance, CI coverage of the source-split evaluation protocol,
+one authoritative risk-score formula (shared by the detector and every
+validation script), and a threshold-analysis tool with a guarded sweep.
 
-**Next:** threshold re-validation on the frozen test set, source-separated
-(unseen-campaign) evaluation (protocol written and CI-tested; the real run
-needs a dataset rebuild + re-train and a machine with the RAM for it),
-SSRF-safe URL reputation, transformer benchmark on the frozen test set.
+**Next:** source-separated (unseen-campaign) evaluation (protocol written and
+CI-tested; the real run needs a dataset rebuild + re-train and a machine with
+the RAM for it), threshold re-validation from the frozen holdout (the sweep tool
+exists and is unit-tested; the measured run needs the same re-train), SSRF-safe
+URL reputation, transformer benchmark on the frozen test set.
 
 ## Author
 

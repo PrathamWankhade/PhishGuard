@@ -20,7 +20,9 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "ai-engine"))
 
-from backend.app.services.phishing_detector import classify_risk, verdict_for_risk
+from backend.app.services.phishing_detector import (
+    classify_risk, verdict_for_risk, compute_risk_score,
+)
 from backend.app.services.url_analyzer import analyze_urls
 from backend.app.services.sender_analyzer import analyze_sender
 from backend.app.services.auth_analyzer import analyze_auth
@@ -46,13 +48,10 @@ def main() -> None:
         sender_a = analyze_sender("")
         auth_a = analyze_auth("", "", "", "")
         bec_a = analyze_bec(text, "")
-        risk = min(99, round(
-            float(p) * 100
-            + min(20, urls.get("suspicious_count", 0) * 4)
-            + sender_a["risk"]
-            + min(10, auth_a["risk"] + bec_a["risk"]),
-            2,
-        ))
+        # Call the shipped formula rather than re-deriving it: an inline copy
+        # here would let the report drift from the detector's behaviour the
+        # moment the policy changes.
+        risk = compute_risk_score(p, urls, sender_a["risk"], auth_a["risk"], bec_a["risk"])
         y_true.append(1 if label == "phishing" else 0)
         y_verdict.append(verdict_for_risk(classify_risk(risk)))
         scores.append(risk)
