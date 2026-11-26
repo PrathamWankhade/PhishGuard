@@ -19,19 +19,37 @@ def analyze_sender(sender: str | None) -> dict:
         reasons.append("Sender uses a suspicious top-level domain")
         risk += 10
 
+    # A domain that is a trusted base or a subdomain of one (app.asana.com,
+    # mail.google.com) is inside a brand the operator already trusts: only the
+    # brand's own registrars can put anything under it, so suffix-matching is
+    # safe against attacker-controlled lookalikes. Penalising these is a
+    # false-positive class on ordinary enterprise mail.
+    # Suffix stuffing (google.com.attacker.com) does NOT match, because the
+    # check compares against the trusted base itself, not a bare brand word.
+    within_trusted_brand = domain in TRUSTED_DOMAINS or any(
+        domain.endswith("." + d) for d in TRUSTED_DOMAINS
+    )
+
     matched_words = [w for w in IMPERSONATION_WORDS if w in domain]
-    if matched_words:
+    if matched_words and not within_trusted_brand:
         reasons.append(f"Sender domain contains impersonation keywords: {', '.join(matched_words[:3])}")
         risk += 10
 
     trusted_base = any(sender.endswith(f"@{d}") for d in TRUSTED_DOMAINS)
-    if not trusted_base and tld not in SUSPICIOUS_TLDS:
-        for trusted in TRUSTED_DOMAINS:
-            base = trusted.split(".")[0]
-            if domain != trusted and domain.endswith("." + trusted):
-                reasons.append(f"Possible domain impersonation: {domain} looks like {trusted}")
-                risk += 8
-                break
+
+    # Brand impersonation: a trusted brand name appearing as a LABEL in a
+    # domain that is not inside that brand's own hierarchy
+    # (google-secure.com, paypal-login.xyz). The previous check matched
+    # `domain.endswith("." + trusted)`, which can only ever be true for a real
+    # subdomain of the brand -- i.e. the opposite of impersonation, and now
+    # suppressed above, so it could never fire at all. Match on whole labels so
+    # incidental substrings ("applesauce.com" contains "apple") do not flag.
+    brand_labels = {t.split(".")[0] for t in TRUSTED_DOMAINS}
+    domain_labels = set(re.split(r"[^a-z0-9]+", domain))
+    impersonated = sorted(brand_labels & domain_labels)
+    if impersonated and not within_trusted_brand:
+        reasons.append(f"Brand name used outside its own domain: {', '.join(impersonated[:3])}")
+        risk += 8
 
     if local_part and re.search(r"(admin|support|service|help|info|contact|team|noreply|donotreply)", local_part) and tld in SUSPICIOUS_TLDS:
         reasons.append(f"Suspicious sender pattern: '{local_part}@{domain}' mimics a legitimate address")
