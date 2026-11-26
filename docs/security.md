@@ -13,11 +13,17 @@ layered accordingly.
 - **Attachments are never executed.** Only metadata (filename, MIME type,
   size) is extracted. Deeper inspection belongs in an isolated sandbox,
   not in this service.
-- **URLs are never fetched.** Analysis is lexical (hostname normalization,
-  TLD/shortener/IP/subdomain rules, mixed-script detection). Live
-  reputation or redirect-chain analysis requires SSRF-safe outbound
-  controls first: protocol allow-list, private/loopback/link-local blocks,
-  DNS-rebinding guards, redirect ceilings.
+- **URLs are not fetched by default.** Analysis is lexical (hostname
+  normalization, TLD/shortener/IP/subdomain rules, mixed-script detection).
+  Live reputation and redirect-chain analysis is opt-in via
+  `URL_REPUTATION_ENABLED=true`, and only through
+  `services/url_safety.py`, which enforces: scheme allow-list, userinfo
+  rejection, port allow-list, resolution of every address with a public-IP
+  check (including mapped/tunneled IPv6 and `100.64.0.0/10`), connection
+  pinned to the validated IP (DNS-rebinding guard), revalidation of every
+  redirect, a response size cap, and strict connect/read timeouts. Nothing
+  is fetched unless an operator turns it on, and it is not fetched by this
+  service's frontend.
 
 ## Authentication and privacy
 

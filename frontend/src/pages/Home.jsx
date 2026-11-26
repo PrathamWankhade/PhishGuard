@@ -5,7 +5,7 @@ import useScrollReveal from '../hooks/useScrollReveal.js';
 import useCountUp from '../hooks/useCountUp.js';
 
 const features = [
-  { icon: 'shield', title: 'Lexical URL Analysis', desc: 'Flags shortened links, IP-based hosts, punycode/homograph tricks, and suspicious TLDs. URLs are never fetched, so analysis is SSRF-safe by design.' },
+  { icon: 'shield', title: 'Lexical URL Analysis', desc: 'Flags shortened links, IP-based hosts, punycode/homograph tricks, and suspicious TLDs. URLs are not fetched by default, so analysis is SSRF-safe by default.' },
   { icon: 'mail', title: 'Email Analysis', desc: 'Scans email content for phishing keywords, urgency language, credential harvesting attempts, and spoofed senders.' },
   { icon: 'network', title: 'ML Classification', desc: 'Soft-voting LogisticRegression + RandomForest over TF-IDF (50k features, 1–3 grams), trained on 195,740 labeled emails.' },
   { icon: 'globe', title: 'Header & Auth Evidence', desc: 'Scores sender domain, Reply-To/Return-Path mismatches, authentication results, and BEC/fraud language as bounded, evidence-tagged risk.' },

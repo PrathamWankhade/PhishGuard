@@ -29,8 +29,10 @@ else `Safe Email`.
 
 ## URL analyzer (`services/url_analyzer.py`)
 
-Passive and lexical. **URLs are never fetched** — no reputation lookup, no
-redirect following (see [security.md](security.md)).
+Passive and lexical **by default** — no reputation lookup, no redirect
+following. An opt-in live mode exists (`URL_REPUTATION_ENABLED=true`) that
+fetches through `services/url_safety.py` with SSRF guards; it is off unless an
+operator enables it. See [security.md](security.md).
 
 | Signal | Detection | Points |
 |---|---|---|
@@ -149,4 +151,8 @@ history. Out of scope for a stateless text analyzer.
   the evidence list; it is only attached when it agrees to be described as
   `deterministic`. See `docs/API_Documentation.md`.
 - **Attachment names / metadata.** Parsed and reported, never scored.
-- **URL destination content.** Never fetched (SSRF-safe by design).
+- **URL destination content.** Not fetched by default. The opt-in live path is
+  guarded by `services/url_safety.py` (52 tests in `tests/test_url_safety.py`
+  covering scheme/port/credential rejection, private and internal targets, the
+  cloud metadata endpoint, dual-homed hosts, tunneled IPv6, redirect
+  revalidation and the response cap).
