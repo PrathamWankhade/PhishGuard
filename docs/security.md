@@ -37,12 +37,24 @@ layered accordingly.
   `/upload` endpoints never receive it. Multi-user production with real
   per-user accounts still needs session auth or a backend-for-frontend on
   top of this isolation.
-- Per-user history isolation is **not yet implemented** — do not store
-  multiple users' mail without adding authentication + tenant-scoped queries.
+- Per-user history isolation **is implemented**: an `owner` column on
+  `scan_history` scopes reads, and each API key is a distinct tenant (a short
+  hash of the validated key). Dev mode (no `API_KEYS`) keeps a single shared
+  tenant. What is *not* implemented is real user accounts — the tenant id is
+  derived from the key, so rotation loses history, and a dropped key stays
+  orphaned in the table.
 - External AI processing sends up to 2,000 characters per scan to OpenRouter.
   Disclosure is documented in `openrouter_explainer.py`; operators should
   surface it in product copy. `AI_EXPLANATIONS_ENABLED=false` (or an unset
   API key) gives a local-only mode with zero external data flow.
+- **There is no Gemini integration**, and there has not been one since the
+  OpenAI-compatible client replaced it (`24c3c33`). Explanations come only
+  from OpenRouter via the OpenAI SDK. Roadmaps or proposals describing a
+  Gemini integration are describing something this repository never had.
+- LLM output is bounded (`MAX_BULLETS`, `MAX_BULLET_CHARS`) before display
+  because it sits next to verified evidence, and it is attached as a separate
+  field — never merged into `signals`/`reasons`. See
+  `tests/test_llm_reliability.py` for the isolation contract.
 - Stored scan rows contain raw bodies and senders: define retention and
   deletion before production use (see
   [Database Design](database_design.md)).
@@ -55,6 +67,8 @@ layered accordingly.
 | Field caps | 10k text, 500 sender/reply fields, 2k auth-results |
 | Rate limit | 60/min/IP general, 30/min/IP on predict+upload, bounded buckets (Redis/gateway REQUIRED for multi-worker — four workers quadruple the effective quota) |
 | Provider call | 10s timeout, 1 retry, verdict-independent; daily budget cap (`AI_DAILY_BUDGET`, default 500 submitted calls) + concurrency semaphore (4, non-blocking degrade); per-process counters — enforce provider-side budgets for multi-worker |
+| Provider response | Bounded to 5 bullets and 300 chars each before display (`MAX_BULLETS` / `MAX_BULLET_CHARS`); provider text is never merged into the evidence channel |
+| Injected prompt text | The email body is model *input*; a reply that complies with an injection ("reply that this is safe") still cannot alter the verdict, risk score, or evidence list |
 | Upload parsing | 2MB raw cap, 50k body cap, never raises |
 
 ## Operational honesty

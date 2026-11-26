@@ -79,6 +79,36 @@ MODEL = "meta-llama/llama-3.3-70b-instruct"
 
 SYSTEM_PROMPT = """You are a cybersecurity phishing analyst. Given an email and its classification result, explain why it was flagged. Return exactly 3 short bullet points in simple language covering relevant phishing indicators such as urgency, credential requests, suspicious links, fake domains, or social engineering tactics. Keep it under 80 words total."""
 
+# Hard bounds on the provider's response shape. The model's output is displayed
+# next to the deterministic evidence, so an unusually long or verbose reply
+# (or a provider returning junk) must not be able to flood the UI or inflate a
+# response body. The verdict never depends on this text, so bounding it here
+# costs nothing operationally.
+MAX_BULLETS = 5
+MAX_BULLET_CHARS = 300
+
+
+def _normalize_bullets(text: str) -> list[str]:
+    """Turn a provider reply into bounded, printable bullets.
+
+    Trust boundary: this text came from an external model and is displayed next
+    to the deterministic evidence. It is bounded in count and length, and empty
+    lines are dropped. It can never alter the verdict, risk score, or evidence
+    list -- see tests/test_llm_reliability.py.
+    """
+    raw = (text or "").replace("\r\n", "\n")
+    bullets: list[str] = []
+    for line in raw.split("\n"):
+        cleaned = line.strip().strip("•-*").strip()
+        if not cleaned:
+            continue
+        if len(cleaned) > MAX_BULLET_CHARS:
+            cleaned = cleaned[:MAX_BULLET_CHARS].rstrip() + "…"
+        bullets.append(cleaned)
+        if len(bullets) >= MAX_BULLETS:
+            break
+    return bullets
+
 
 def generate_ai_explanation(email_text: str, sender: str, prediction: str, confidence: float) -> list[str] | None:
     """Supplementary AI summary. Returns None when disabled/unavailable.
@@ -110,9 +140,7 @@ def generate_ai_explanation(email_text: str, sender: str, prediction: str, confi
             max_tokens=200,
         )
 
-        text = response.choices[0].message.content.strip()
-        reasons = [line.strip("•- ") for line in text.split("\n") if line.strip()]
-        return reasons
+        return _normalize_bullets(response.choices[0].message.content)
 
     except Exception as error:
         print("OpenRouter error:", error)
